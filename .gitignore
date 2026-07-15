@@ -1,0 +1,20 @@
+﻿# 作業系統檔案
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 編輯器與 IDE 設定
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 暫存與記錄檔
+*.log
+*.tmp
+*.bak
+
+# 本機環境設定
+.env
+.env.*
+!.env.example

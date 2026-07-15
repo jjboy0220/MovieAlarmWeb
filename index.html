@@ -1,0 +1,30 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Movie Schedule Alarm 影城營運場次管理工具">
+  <title>Movie Schedule Alarm V1.0</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/card.css">
+  <link rel="stylesheet" href="css/table.css">
+  <link rel="stylesheet" href="css/badge.css">
+  <link rel="stylesheet" href="css/alarm.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Movie Schedule Alarm 首頁"><img src="assets/logo.png" alt=""><span>Movie Schedule Alarm</span><small>V1.0</small></a>
+    <nav aria-label="主要導覽"><a class="active" href="#dashboard">營運總覽</a><a href="#schedule">場次列表</a></nav>
+    <div class="top-actions"><label class="file-button">選擇 Excel<input id="fileInput" type="file" accept=".xlsx,.xls,.csv" hidden></label><button id="themeButton" class="theme-button" type="button">深色模式</button></div>
+  </header>
+  <main id="top" class="layout">
+    <section id="dashboard" class="intro"><div><p class="eyebrow">CINEMA OPERATIONS / COMMIT 3</p><h1>影城場次監控<br><em>集中資料狀態已啟用。</em></h1><p>匯入場次表後，從單一資料狀態套用搜尋、格式篩選與統計。</p></div><aside class="system-card"><span class="signal"></span><p>系統狀態</p><strong>資料篩選就緒</strong><small>搜尋、格式篩選與統計已接上</small></aside></section>
+    <section class="stat-grid" aria-label="場次統計"><article><span>今日場次</span><strong id="totalStat">0</strong><small>已匯入場次總數</small></article><article><span>顯示結果</span><strong id="visibleStat">0</strong><small>目前篩選結果</small></article><article><span>已完成</span><strong id="finishedStat">0</strong><small>後續提交啟用</small></article><article><span>剩餘</span><strong id="remainingStat">0</strong><small>後續提交啟用</small></article><article><span>播放中</span><strong id="playingStat">0</strong><small>後續提交啟用</small></article></section>
+    <section class="next-card"><div class="card-top"><p>NEXT MOVIE</p><span class="status-badge neutral">尚未啟用監控</span></div><div class="next-grid"><div><span>開演時間</span><strong>--:--</strong></div><div class="wide"><span>電影</span><strong>Excel Reader 僅載入資料</strong></div><div><span>影廳</span><strong>--</strong></div><div><span>規格</span><strong>--</strong></div><div class="countdown-slot"><span>倒數</span><strong>後續啟用</strong></div></div></section>
+    <section id="schedule" class="schedule-panel"><div class="panel-head"><div><p class="eyebrow">SCHEDULE</p><h2>電影場次列表</h2><p id="fileStatus">尚未選擇排程檔案</p></div><div class="controls"><label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="搜尋電影、影廳或語言"></label><select id="formatFilter" aria-label="規格篩選"><option value="ALL">所有規格</option><option>DIG</option><option>TITAN</option><option>IMAX</option><option>ATMOS</option><option>4DX</option></select></div></div><div class="table-wrap"><table><thead><tr><th>狀態</th><th>開始</th><th>結束</th><th>影廳</th><th>規格</th><th>語言</th><th>電影</th><th>剩餘</th></tr></thead><tbody id="scheduleBody"></tbody></table></div><p id="emptyState" class="empty-state">選擇場次表 Excel 後，系統會依欄位名稱讀取電影物件。</p></section>
+  </main>
+  <footer>Movie Schedule Alarm V1.0 ・ Cinema Operations Toolkit</footer>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
