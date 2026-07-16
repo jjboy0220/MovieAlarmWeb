@@ -1,1 +1,54 @@
-﻿.next-card{padding:21px 23px;border:1px solid #3d5949;border-radius:11px;background:linear-gradient(110deg,#173125,#203e2f);box-shadow:var(--shadow)}.card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.card-top p{margin:0;color:#adc4b5;font-size:10px;font-weight:bold;letter-spacing:1.3px}.next-grid{display:grid;grid-template-columns:.8fr 2.1fr .7fr .8fr 1.15fr;gap:14px;align-items:end}.next-grid span{display:block;color:#afc1b5;font-size:11px}.next-grid strong{font-size:20px}.next-grid .wide strong{font-size:18px}.countdown-slot{padding:9px 12px;border-radius:6px;background:#0d1b13}.countdown-slot strong{color:var(--accent-soft);font-size:14px}@media(max-width:760px){.next-card{padding:18px}.next-grid{grid-template-columns:1fr 1fr}.next-grid .wide,.countdown-slot{grid-column:1/-1}}
+.next-card { padding: clamp(2rem, 4vw, 3.5rem); border: 1px solid var(--next-card-border); border-radius: 14px; background: linear-gradient(145deg, var(--next-card-bg), var(--next-card-bg-secondary)); box-shadow: var(--next-card-shadow); color: var(--next-card-text); text-align: center; }
+.card-top { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: 1.7rem; text-align: center; }
+.card-top p { margin: 0; color: var(--next-card-text); font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 900; letter-spacing: .14em; line-height: 1.1; }
+.card-top .status-badge { position: absolute; top: 50%; right: 0; transform: translateY(-50%); }
+.next-card .status-badge.waiting { border: 1px solid var(--next-card-badge-border); background: var(--next-card-badge-bg); color: var(--next-card-badge-ink); }
+.next-hero { display: grid; width: 100%; justify-items: center; gap: .7rem; }
+.next-date span, .next-time span, .next-countdown span { display: block; color: var(--next-card-muted); font-size: .72rem; font-weight: 800; letter-spacing: .08em; }
+.next-date strong { display: block; margin-top: .25rem; color: var(--next-card-text); font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 900; letter-spacing: .04em; }
+.next-time { padding: .85rem 0 .35rem; }
+#nextTime { display: block; color: var(--next-card-time); font-size: clamp(3.5rem, 8vw, 5.5rem); font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -.06em; line-height: 1; text-shadow: 0 3px 16px var(--next-card-time-glow); }
+.next-countdown { margin-top: 1.15rem; }
+#nextCountdown { display: block; margin-top: .35rem; color: var(--next-card-countdown); font-size: clamp(3.5rem, 7vw, 6rem); font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -.04em; line-height: 1; }
+.next-session-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem; width: 100%; margin-top: 2.5rem; }
+.next-session-item { min-width: 0; padding: 1.1rem 1.2rem; border: 1px solid var(--next-session-border); border-radius: 14px; background: var(--next-session-bg); color: var(--next-card-text); text-align: left; box-shadow: var(--next-session-shadow); }
+.next-session-hall { display: flex; align-items: center; min-height: 1.8rem; }
+.next-session-title { display: block; margin: .65rem 0 .8rem; color: var(--next-card-text); font-size: clamp(1.1rem, 2.2vw, 1.35rem); font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; }
+.next-session-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 1.9rem; }
+.next-session-badges .format-badge-group { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.next-session-unlabeled { color: var(--next-card-muted); font-size: .82rem; font-weight: 700; }
+.next-session-empty { grid-column: 1 / -1; margin: 0; padding: 1.5rem; border: 1px dashed var(--next-card-border); border-radius: 14px; color: var(--next-card-muted); font-size: 1rem; font-weight: 700; }
+
+/* 淺色模式維持白藍階層、醒目倒數與高對比的同時場次資訊卡。 */
+body.light .next-card { position: relative; isolation: isolate; overflow: hidden; padding: clamp(32px, 5vw, 64px); border: 1px solid var(--next-card-border); border-radius: 28px; background: var(--next-card-bg); box-shadow: var(--next-card-highlight), var(--next-card-shadow); transition: transform 180ms ease, box-shadow 180ms ease; }
+body.light .next-card::before { position: absolute; top: -38%; right: -12%; width: 16rem; height: 16rem; border-radius: 50%; background: radial-gradient(circle, var(--next-card-glow-start) 0%, var(--next-card-glow-end) 42%, transparent 72%); content: ''; opacity: .75; pointer-events: none; z-index: 0; filter: blur(5px); }
+body.light .next-card > * { position: relative; z-index: 1; }
+@media (hover: hover) { body.light .next-card:hover { transform: translateY(-2px); box-shadow: var(--next-card-highlight), 0 2px 4px rgba(15, 23, 42, .04), 0 18px 38px rgba(15, 23, 42, .12); } }
+body.light .card-top { margin-bottom: 2rem; }
+body.light .card-top p { color: var(--next-card-text); font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 900; letter-spacing: .14em; }
+body.light .next-card .status-badge.waiting { border-color: var(--next-card-badge-border); background: var(--next-card-badge-bg); color: var(--next-card-badge-ink); border-radius: 999px; box-shadow: none; }
+body.light .next-hero { gap: .85rem; }
+body.light .next-date span, body.light .next-time span, body.light .next-countdown span { color: var(--next-card-subtle); font-size: .75rem; font-weight: 700; letter-spacing: .08em; }
+body.light .next-date strong { margin-top: .35rem; color: var(--next-card-text); font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 900; letter-spacing: .04em; }
+body.light .next-time { padding: 1rem 0 .45rem; }
+body.light #nextTime { color: var(--next-card-time); font-size: clamp(4.5rem, 9vw, 7rem); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.05em; line-height: .95; text-shadow: none; }
+body.light .next-countdown { margin-top: 1.35rem; }
+body.light #nextCountdown { color: var(--next-card-countdown); text-shadow: none; }
+body.light .next-session-list { margin-top: 2.8rem; gap: 1.1rem; }
+body.light .next-session-item { border-color: var(--next-session-border); border-radius: 18px; background: var(--next-session-bg); box-shadow: var(--next-session-shadow); }
+body.light .next-session-empty { border-color: var(--next-session-border); background: var(--next-session-bg); color: var(--next-card-muted); }
+
+@media (max-width: 760px) {
+  .next-card { padding: 2rem 1.3rem; }
+  .card-top { flex-direction: column; margin-bottom: 1.5rem; }
+  .card-top p { font-size: clamp(1.55rem, 8vw, 2.15rem); }
+  .card-top .status-badge { position: static; margin-top: .85rem; transform: none; }
+  .next-session-list { grid-template-columns: 1fr; margin-top: 2rem; }
+  .next-session-item { padding: 1rem; }
+  body.light .next-card { padding: clamp(30px, 8vw, 44px); border-radius: 24px; }
+  body.light .card-top { margin-bottom: 1.7rem; }
+  body.light .card-top p { font-size: clamp(1.55rem, 8vw, 2.15rem); }
+  body.light #nextTime { font-size: clamp(3.75rem, 18vw, 5rem); }
+  body.light #nextCountdown { font-size: clamp(3.1rem, 16vw, 4.75rem); }
+  body.light .next-session-list { margin-top: 2.25rem; }
+}

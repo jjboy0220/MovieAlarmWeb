@@ -1,0 +1,6 @@
+此檔案說明 Movie Schedule Alarm V1.0 需要本機警報音效。
+
+請將可合法使用的 WAV 音檔命名為 alarm.wav，並放在同一個 assets 資料夾內：
+assets/alarm.wav
+
+系統不會偽造或自動產生 WAV 音檔。若 alarm.wav 不存在或無法播放，場次開始提醒 Modal 仍會顯示，並提示使用者檢查該檔案。

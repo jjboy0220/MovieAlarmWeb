@@ -1,1 +1,41 @@
-﻿.status-badge,.format-badge{display:inline-block;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:bold}.status-badge.neutral{background:#31443a;color:#b9c9bf}.format-badge{background:#2b4056;color:#bfdbed}.format-badge.titan{background:#58352f;color:#f0c0b6}.format-badge.imax{background:#39345a;color:#d8d4ff}.format-badge.atmos{background:#214c4d;color:#b9e4e3}.format-badge.fourdx{background:#563952;color:#efc5e7}
+/* 狀態 Badge 以高對比文字與非單一色彩文字共同表達即時場次狀態。 */
+.status-badge { display: inline-block; padding: 3px 7px; border: 1px solid transparent; border-radius: 999px; font-size: 11px; font-weight: bold; }
+.status-badge.waiting { border-color: #fbbf24; background: linear-gradient(180deg, #ffdc32 0%, #ffc900 100%); color: #1f1900; }
+.status-badge.playing { border-color: #ff65b5; background: linear-gradient(180deg, #ff55ad 0%, #f83294 100%); color: #fff7fc; }
+.status-badge.finished { border-color: #8be86a; background: linear-gradient(180deg, #71d957 0%, #45b934 100%); color: #f7fff4; }
+.status-badge.invalid { border-color: #f87171; background: rgba(185, 28, 28, .22); color: #fecaca; }
+body.light .status-badge.waiting { border-color: #eab308; background: linear-gradient(180deg, #ffe45c 0%, #ffd21a 100%); color: #211a00; }
+body.light .status-badge.playing { border-color: #ec4899; background: linear-gradient(180deg, #ff5caf 0%, #f23891 100%); color: #fff; }
+body.light .status-badge.finished { border-color: #4fbf38; background: linear-gradient(180deg, #7cdd60 0%, #4dbc39 100%); color: #fff; }
+body.light .status-badge.invalid { border-color: #fca5a5; background: #fee2e2; color: #b91c1c; }
+
+/* 格式、語言與影廳 Badge 使用一致的輕量膠囊結構。 */
+.format-badge, .language-badge, .hall-badge { display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; border: 1px solid; border-radius: 999px; font-size: .82rem; font-weight: 700; letter-spacing: .03em; line-height: 1; white-space: nowrap; transition: background 160ms ease, border-color 160ms ease, color 160ms ease; }
+.format-badge-group { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
+.language-badge { border-color: var(--badge-language-border); background: var(--badge-language-bg); color: var(--badge-language-ink); }
+.language-badge.chi { border-color: var(--badge-language-chi-border); background: var(--badge-language-chi-bg); color: var(--badge-language-chi-ink); }
+.language-badge.eng { border-color: var(--badge-language-eng-border); background: var(--badge-language-eng-bg); color: var(--badge-language-eng-ink); }
+.language-badge.jan { border-color: var(--badge-language-jan-border); background: var(--badge-language-jan-bg); color: var(--badge-language-jan-ink); }
+.hall-badge { border-color: var(--badge-hall-border); background: var(--badge-hall-bg); color: var(--badge-hall-ink); }
+.format-badge { border-color: var(--badge-dig-border); background: var(--badge-dig-bg); color: var(--badge-dig-ink); }
+.format-badge.dig { border-color: var(--badge-dig-border); background: var(--badge-dig-bg); color: var(--badge-dig-ink); }
+.format-badge.titan { border-color: var(--badge-titan-border); background: var(--badge-titan-bg); color: var(--badge-titan-ink); }
+.format-badge.imax { border-color: var(--badge-imax-border); background: var(--badge-imax-bg); color: var(--badge-imax-ink); }
+.format-badge.atmos { border-color: var(--badge-atmos-border); background: var(--badge-atmos-bg); color: var(--badge-atmos-ink); }
+.format-badge.fourdx { border-color: var(--badge-fourdx-border); background: var(--badge-fourdx-bg); color: var(--badge-fourdx-ink); }
+.format-badge.three-d { border-color: var(--badge-three-d-border); background: var(--badge-three-d-bg); color: var(--badge-three-d-ink); }
+.format-badge.three-d-dig { border-color: var(--badge-three-d-dig-border); background: var(--badge-three-d-dig-bg); color: var(--badge-three-d-dig-ink); }
+@media (hover: hover) {
+  .language-badge.chi:hover { background: var(--badge-language-chi-hover); }
+  .language-badge.eng:hover { background: var(--badge-language-eng-hover); }
+  .language-badge.jan:hover { background: var(--badge-language-jan-hover); }
+  .language-badge:not(.chi):not(.eng):not(.jan):hover { background: var(--badge-language-hover); }
+  .hall-badge:hover { background: var(--badge-hall-hover); }
+  .format-badge.dig:hover { background: var(--badge-dig-hover); }
+  .format-badge.titan:hover { background: var(--badge-titan-hover); }
+  .format-badge.imax:hover { background: var(--badge-imax-hover); }
+  .format-badge.atmos:hover { background: var(--badge-atmos-hover); }
+  .format-badge.fourdx:hover { background: var(--badge-fourdx-hover); }
+  .format-badge.three-d:hover { background: var(--badge-three-d-hover); }
+  .format-badge.three-d-dig:hover { background: var(--badge-three-d-dig-hover); }
+}

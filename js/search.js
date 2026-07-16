@@ -1,4 +1,4 @@
-﻿import { normalizeText } from './utils.js';
+import { getSessionFormats, normalizeText } from './utils.js';
 
 // 將搜尋文字標準化，忽略前後空白、合併多餘空白並統一英文大小寫。
 export function normalizeSearchText(value) {
@@ -11,11 +11,11 @@ export function bindSearch(onChange) {
   input.addEventListener('input', event => onChange(normalizeSearchText(event.target.value)));
 }
 
-// 搜尋片名、顯示片名、影廳、語言與格式；空白條件一律通過。
+// 搜尋片名、顯示片名、影廳、語言、組合顯示格式與全部原始格式；空白條件一律通過。
 export function matchesSearch(session, searchText) {
   const query = normalizeSearchText(searchText);
   if (!query) return true;
 
-  return [session.title, session.displayTitle, session.hall, session.language, session.format]
+  return [session.title, session.displayTitle, session.hall, session.language, session.formatDisplay, session.format, ...getSessionFormats(session)]
     .some(value => normalizeSearchText(value).includes(query));
 }
