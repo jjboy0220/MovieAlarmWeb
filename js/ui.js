@@ -86,11 +86,12 @@ export function updateNextMovieCard(presentation, countdownText) {
 }
 
 // 顯示大型場次開始 Modal，並只使用已固定的 activeAlarmGroup 資料避免被下一場覆蓋。
-export function showAlarmModal(group, audioNotice = '') {
+export function showAlarmModal(group, audioNotice = '', leadMinutes = 0) {
   const modal = $('#alarmModal');
   const firstSession = group?.sessions?.[0];
   if (!firstSession) return;
 
+  $('#alarmModalTitle').textContent = leadMinutes > 0 ? '即將開播' : '場次開始';
   $('#alarmModalDate').textContent = formatCompactChineseDate(firstSession.date, firstSession.weekday);
   $('#alarmModalTime').textContent = firstSession.start;
   $('#alarmSessionList').innerHTML = group.sessions.map(renderAlarmSession).join('');
@@ -235,13 +236,66 @@ export function updateStatistics(statistics) {
   $('#playingStat').textContent = statistics.playing;
 }
 
-// 綁定深淺色主題切換按鈕。
-export function bindThemeToggle() {
-  const button = $('#themeButton');
-  button.addEventListener('click', () => {
-    const light = document.body.classList.toggle('light');
-    button.textContent = light ? '深色模式' : '淺色模式';
+// 將集中 state 的主題值套用到頁面，並同步既有頁首切換按鈕文字。
+export function applyTheme(theme) {
+  const isLight = theme === 'light';
+  document.body.classList.toggle('light', isLight);
+  $('#themeButton').textContent = isLight ? '深色模式' : '淺色模式';
+}
+
+// 綁定深淺色主題切換按鈕，實際設定更新仍交由 app.js 的集中 state 處理。
+export function bindThemeToggle(onToggle) {
+  $('#themeButton').addEventListener('click', () => onToggle());
+}
+
+// 開啟設定中心並將鍵盤焦點移至關閉按鈕，避免焦點停留在背景頁面。
+function openSettingsModal() {
+  $('#settingsModal').hidden = false;
+  document.body.classList.add('settings-open');
+  $('#settingsCloseButton').focus();
+}
+
+// 關閉設定中心並移除鎖定背景捲動的頁面狀態。
+function closeSettingsModal() {
+  $('#settingsModal').hidden = true;
+  document.body.classList.remove('settings-open');
+  $('#settingsButton').focus();
+}
+
+// 依集中 state 更新設定中心所有控制項，避免表單另行保存設定副本。
+export function updateSettingsForm(settings) {
+  $('#settingsVolume').value = String(Math.round((Number(settings?.alarmVolume) || 0) * 100));
+  $('#settingsVolumeValue').textContent = `${$('#settingsVolume').value}%`;
+  $('#settingsSoundMode').value = settings?.alarmSoundMode || 'DEFAULT';
+  $('#settingsLeadMinutes').value = String(settings?.alarmLeadMinutes || 0);
+  $('#settingsTheme').value = settings?.theme === 'light' ? 'light' : 'dark';
+  $('#settingsDebugPanel').checked = Boolean(settings?.debugPanelOpen);
+}
+
+// 顯示 localStorage 寫入失敗等需要使用者留意的設定訊息。
+export function updateSettingsNotice(message) {
+  const notice = $('#settingsStorageNotice');
+  notice.textContent = message || '';
+  notice.hidden = !message;
+}
+
+// 綁定設定中心開關與控制項；所有設定變更只回傳給 app.js 更新集中 state。
+export function bindSettingsControls({ onChange }) {
+  $('#settingsButton').addEventListener('click', openSettingsModal);
+  $('#settingsCloseButton').addEventListener('click', closeSettingsModal);
+  $('[data-settings-close]').addEventListener('click', closeSettingsModal);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !$('#settingsModal').hidden) {
+      event.preventDefault();
+      closeSettingsModal();
+    }
   });
+
+  $('#settingsVolume').addEventListener('input', event => onChange({ alarmVolume: Number(event.target.value) / 100 }));
+  $('#settingsSoundMode').addEventListener('change', event => onChange({ alarmSoundMode: event.target.value }));
+  $('#settingsLeadMinutes').addEventListener('change', event => onChange({ alarmLeadMinutes: Number(event.target.value) }));
+  $('#settingsTheme').addEventListener('change', event => onChange({ theme: event.target.value }));
+  $('#settingsDebugPanel').addEventListener('change', event => onChange({ debugPanelOpen: event.target.checked }));
 }
 
 // 顯示或隱藏場次表格下方的空狀態與錯誤提示。

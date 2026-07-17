@@ -253,7 +253,7 @@ Excel 必要欄位：
 - `alarmEnabled` 是警報切換 UI 的唯一來源；`alarmUnlocked` 與 `activeAlarmGroup` 僅為輔助執行狀態。
 - 關閉警報必須暫停並重設音效、關閉 Modal 與移除警示視覺，但不得清除已觸發紀錄。
 - `assets/alarm.wav` 缺少、載入失敗或播放失敗時，Modal 與視覺提醒仍須正常運作，並以非阻塞訊息說明音效錯誤。
-- 網頁重新載入後警報預設關閉，V1.0 不使用 localStorage 保存設定。
+- 網頁重新載入後警報預設關閉；設定中心僅可使用 localStorage 保存一般設定，絕不可保存警報開關或音訊解鎖狀態。
 - 網頁只可設定 HTMLAudioElement 音量，不得聲稱能控制 Windows 系統音量。
 - 背景分頁恢復時只可補處理最後一個未觸發 Group，不得連續播放多個過期警報。
 

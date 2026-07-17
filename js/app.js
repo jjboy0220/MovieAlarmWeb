@@ -1,10 +1,11 @@
 import { APP_NAME, VERSION } from './config.js';
+import { loadSettings, normalizeSettings, saveSettings } from './settings.js';
 import { readExcel } from './excelReader.js';
 import { getLatestUntriggeredSessionGroup, getNextMoviePresentationState, sortSessionsByStart, updateSessionStatuses } from './scheduler.js';
 import { formatCountdown, getCountdownSeconds, getCountdownTickerStatus, startCountdownTicker } from './countdown.js';
 import { createAlarmChannel } from './alarm.js';
 import { getScheduleDebugInfo } from './debug.js';
-import { bindAlarmControls, bindDebugPanel, bindThemeToggle, hideAlarmModal, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateDebugPanel, updateFileStatus, updateNextMovieCard, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
+import { applyTheme, bindAlarmControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, hideAlarmModal, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateDebugPanel, updateFileStatus, updateNextMovieCard, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
 import { createEmptyTable, renderMovieRows } from './table.js';
 import { bindSearch, matchesSearch } from './search.js';
 import { bindFilters, matchesFilters, populateFilterOptions } from './filter.js';
@@ -23,7 +24,7 @@ const state = {
   statusFilter: 'ACTIVE',
   importedFileName: '',
   importedAt: null,
-  debugPanelOpen: false,
+  settings: loadSettings(),
   lastTickerUpdatedAt: null,
   nextSessionGroup: null,
   activeAlarmGroup: null,
@@ -37,6 +38,17 @@ const state = {
   pageWasHidden: false
 };
 
+// 將設定變更正規化後存入唯一 state，套用到 UI 與既有 Audio Channel，且不建立額外 Timer。
+function updateSettings(patch, shouldPersist = true) {
+  state.settings = normalizeSettings({ ...state.settings, ...patch });
+  applyTheme(state.settings.theme);
+  alarmChannel.applySettings(state.settings);
+  updateSettingsForm(state.settings);
+
+  const result = shouldPersist ? saveSettings(state.settings) : { success: true, message: '' };
+  updateSettingsNotice(result.success ? '' : result.message);
+  updateDebugPanelFromState(new Date());
+}
 // 將唯一 Audio Alarm Channel 的執行快照同步到集中 state，供 UI 與偵錯面板讀取。
 function syncAlarmRuntimeState() {
   const alarmRuntime = alarmChannel.getState();
@@ -82,12 +94,12 @@ function updateDebugPanelFromState(now = new Date()) {
     ...getCountdownTickerStatus(),
     pageVisible: !document.hidden
   });
-  updateDebugPanel(debugInfo, state.debugPanelOpen);
+  updateDebugPanel(debugInfo, state.settings.debugPanelOpen);
 }
 
 // 實際啟動警報音效；播放失敗時仍保留 Modal，並以非阻塞訊息提示使用者。
 async function playAlarmForGroup(group) {
-  const result = await alarmChannel.startAlarm(group);
+  const result = await alarmChannel.startAlarm(state.settings);
   syncAlarmRuntimeState();
 
   if (state.activeAlarmGroup?.groupKey === group.groupKey) {
@@ -107,7 +119,7 @@ function triggerAlarmGroup(group, now, isMissed) {
 
   state.lastAlarmTriggeredAt = now;
   state.activeAlarmGroup = group;
-  showAlarmModal(group, getAlarmAudioNotice());
+  showAlarmModal(group, getAlarmAudioNotice(), state.settings.alarmLeadMinutes);
   void playAlarmForGroup(group);
 }
 
@@ -115,10 +127,13 @@ function triggerAlarmGroup(group, now, isMissed) {
 function checkAlarmSchedule(now, previousTickAt, resumedFromBackground) {
   if (!state.importedFileName || !previousTickAt || state.activeAlarmGroup) return;
 
+  const leadOffset = state.settings.alarmLeadMinutes * 60 * 1000;
+  const reminderPreviousTickAt = new Date(previousTickAt.getTime() + leadOffset);
+  const reminderNow = new Date(now.getTime() + leadOffset);
   const { group, crossedGroupCount } = getLatestUntriggeredSessionGroup(
     state.sessions,
-    previousTickAt,
-    now,
+    reminderPreviousTickAt,
+    reminderNow,
     state.triggeredAlarmGroups
   );
   if (!group) return;
@@ -128,7 +143,7 @@ function checkAlarmSchedule(now, previousTickAt, resumedFromBackground) {
 
 // 停止音效、關閉 Modal 並保留已觸發群組紀錄，避免停止後重新觸發同一場次。
 function stopActiveAlarm() {
-  alarmChannel.stopAlarm();
+  alarmChannel.stopAlarm(state.settings);
   state.activeAlarmGroup = null;
   syncAlarmRuntimeState();
   hideAlarmModal();
@@ -138,7 +153,7 @@ function stopActiveAlarm() {
 
 // 在使用者點選單一開關時解鎖音效；成功只更新狀態 Badge，失敗才顯示非阻塞錯誤提示。
 async function enableAlarmSound() {
-  const result = await alarmChannel.unlock();
+  const result = await alarmChannel.unlock(state.settings);
   syncAlarmRuntimeState();
   updateAlarmNotice(result.success ? '' : result.message);
   updateActiveAlarmNotice();
@@ -149,7 +164,7 @@ async function enableAlarmSound() {
 // 關閉警報沿用既有正式停止流程，再關閉唯一 enabled 開關且保留已觸發群組。
 function disableAlarmSound() {
   stopActiveAlarm();
-  alarmChannel.disableAlarm();
+  alarmChannel.disableAlarm(state.settings);
   syncAlarmRuntimeState();
   updateAlarmNotice('');
   updateDebugPanelFromState(new Date());
@@ -272,16 +287,17 @@ function bindVisibilityRefresh() {
 // 初始化事件與唯一倒數計時器，重新匯入、搜尋、篩選與警報控制皆不會建立額外 interval。
 function init() {
   document.title = `${APP_NAME} V${VERSION}`;
+  updateSettings({}, false);
   syncAlarmRuntimeState();
-  bindThemeToggle();
+  bindThemeToggle(() => {
+    updateSettings({ theme: state.settings.theme === 'light' ? 'dark' : 'light' });
+  });
+  bindSettingsControls({ onChange: updateSettings });
   bindAlarmControls({
     onToggle: toggleAlarmSound,
     onStop: stopActiveAlarm
   });
-  bindDebugPanel(isOpen => {
-    state.debugPanelOpen = isOpen;
-    updateDebugPanelFromState(new Date());
-  });
+  bindDebugPanel(isOpen => updateSettings({ debugPanelOpen: isOpen }));
   bindSearch(searchText => {
     state.searchText = searchText;
     applyFilters();
