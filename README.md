@@ -98,6 +98,29 @@ npm run build:installer
 
 `npm run desktop` 啟動 Electron 開發版；`npm run build:portable` 建立 Windows x64 免安裝版，`npm run build:installer` 建立 Windows x64 NSIS 安裝程式。
 
+### Windows 版本使用方式
+
+- Portable：免安裝，適合從 USB 執行或臨時測試。由於執行時會使用暫存解壓位置，不建議從正在執行的 Portable 圖示釘選到工作列。
+- Installer：適合日常固定使用。安裝完成後，請從開始功能表搜尋「Movie Schedule Alarm」啟動，再將該已安裝應用程式釘選到工作列。
+
+Desktop 版本每次啟動時鬧鐘會自動開啟，但不會在沒有場次到點時播放聲音；使用者仍可在本次執行期間手動關閉。瀏覽器與 Live Server 版本維持手動開啟鬧鐘。
+
+Windows Setup 安裝版可在設定中心開啟「開機時自動啟動」，登入 Windows 後自動開啟 Movie Schedule Alarm。使用者仍可從「Windows 設定 → 應用程式 → 啟動」或「工作管理員 → 啟動應用程式」停用；程式會顯示 Windows 的實際啟動狀態，不會繞過系統停用。Portable 與開發模式不建立永久啟動項目。
+
+Desktop 啟動約 5 秒後會檢查是否已有本機今天的有效場次；若尚未匯入，會顯示匯入 Modal 與 Windows 原生通知。「稍後提醒」會以單次 Timer 在 30 分鐘後重新檢查，匯入今日場次後立即取消。此功能只保存提醒日期與稍後提醒時間，不保存 Excel 場次資料。
+
+### Preview 3 更新內容
+
+- Windows Desktop 每次啟動時鬧鐘預設開啟，使用者仍可在本次執行期間手動關閉。
+- Setup 安裝版新增 Windows 登入後自動啟動設定，並顯示 Windows 實際啟動狀態。
+- 尚未匯入當日場次表時顯示匯入 Modal 與 Windows 原生通知。
+- 使用既有標準化場次日期判定是否包含本機今天的有效場次。
+- 保留最小化、背景警報、自動還原、置頂與單一實例流程。
+- SheetJS 維持完全本機化，可離線匯入 Excel。
+- Portable 不建立永久 Windows 啟動項目，適合臨時使用或攜帶測試。
+
+Preview 3 的免安裝版檔名為 `Movie-Schedule-Alarm-V1.0-Preview.3-Portable.exe`，NSIS 安裝程式檔名為 `Movie-Schedule-Alarm-V1.0-Preview.3-Setup.exe`。
+
 ### Preview 2 修正內容
 
 - 最小化後仍可準時提醒。

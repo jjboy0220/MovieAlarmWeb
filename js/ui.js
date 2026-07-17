@@ -187,6 +187,15 @@ function getDebugEntries(debugInfo) {
     ['Ticker ID 已建立', debugInfo.tickerIdExists],
     ['最後一次 ticker 更新', debugInfo.lastTickAt],
     ['頁面可見', debugInfo.pageVisible],
+    ['Windows 開機啟動支援', debugInfo.startupSupported],
+    ['Windows 開機啟動已啟用', debugInfo.startupEnabled],
+    ['登入時實際會啟動', debugInfo.startupExecutableWillLaunch],
+    ['Desktop 執行型態', debugInfo.desktopInstallationType],
+    ['已匯入今日場次', debugInfo.hasTodaySchedule],
+    ['今日提醒 Timer 已建立', debugInfo.dailyReminderTimerScheduled],
+    ['最後今日提醒檢查時間', debugInfo.lastDailyReminderCheckAt],
+    ['今日原生通知已顯示', debugInfo.dailyNotificationShown],
+    ['今日原生通知錯誤', debugInfo.dailyNotificationError],
     ['警報音效已啟用', debugInfo.alarmEnabled],
     ['警報切換按鈕文字', debugInfo.alarmToggleLabel],
     ['警報狀態文字', debugInfo.alarmStatusText],
@@ -232,8 +241,26 @@ function getDebugEntries(debugInfo) {
     ['Modal 開啟時間', debugInfo.modalOpenedAt],
     ['audio.play() 呼叫時間', debugInfo.audioPlayCalledAt],
     ['audio.play() 完成時間', debugInfo.audioPlayResolvedAt],
-    ['audio.play() 錯誤', debugInfo.rendererAudioPlayError]
+    ['audio.play() 錯誤', debugInfo.rendererAudioPlayError],
+    ['WebContents 音訊靜音', debugInfo.webContentsAudioMuted]
   ];
+}
+
+// 顯示今日場次匯入提醒並將鍵盤焦點移至主要上傳按鈕。
+export function showDailyImportReminder() {
+  $('#dailyImportReminderModal').hidden = false;
+  $('#uploadTodayScheduleButton').focus();
+}
+
+// 關閉今日場次匯入提醒，不影響程式與既有場次資料。
+export function hideDailyImportReminder() {
+  $('#dailyImportReminderModal').hidden = true;
+}
+
+// 綁定提醒 Modal 的上傳及稍後提醒按鈕，不建立第二個檔案輸入元件。
+export function bindDailyImportReminder({ onUpload, onSnooze }) {
+  $('#uploadTodayScheduleButton').addEventListener('click', onUpload);
+  $('#snoozeTodayScheduleButton').addEventListener('click', onSnooze);
 }
 
 // 綁定偵錯面板切換按鈕，僅回傳使用者意圖，開關狀態仍保存在集中 state。
@@ -298,13 +325,36 @@ function closeSettingsModal() {
 }
 
 // 依集中 state 更新設定中心所有控制項，避免表單另行保存設定副本。
-export function updateSettingsForm(settings) {
+export function updateSettingsForm(settings, desktopStartupState = {}) {
   $('#settingsVolume').value = String(Math.round((Number(settings?.alarmVolume) || 0) * 100));
   $('#settingsVolumeValue').textContent = `${$('#settingsVolume').value}%`;
   $('#settingsSoundMode').value = settings?.alarmSoundMode || 'DEFAULT';
   $('#settingsLeadMinutes').value = String(settings?.alarmLeadMinutes || 0);
   $('#settingsTheme').value = settings?.theme === 'light' ? 'light' : 'dark';
   $('#settingsDebugPanel').checked = Boolean(settings?.debugPanelOpen);
+  $('#settingsDailyImportReminder').checked = Boolean(settings?.dailyImportReminderEnabled);
+
+  const desktopGroup = $('#desktopSettingsGroup');
+  const isDesktop = Boolean(desktopStartupState.isDesktop);
+  desktopGroup.hidden = !isDesktop;
+  if (!isDesktop) return;
+
+  const startupCheckbox = $('#settingsStartupEnabled');
+  const startupSupported = Boolean(desktopStartupState.supported);
+  startupCheckbox.disabled = !startupSupported;
+  startupCheckbox.checked = startupSupported
+    ? Boolean(desktopStartupState.enabled)
+    : Boolean(settings?.startupEnabled);
+
+  if (startupSupported && !desktopStartupState.executableWillLaunchAtLogin && settings?.startupEnabled) {
+    $('#settingsStartupStatus').textContent = 'Windows 已停用此啟動項目';
+  } else if (startupSupported) {
+    $('#settingsStartupStatus').textContent = desktopStartupState.enabled ? '已啟用' : '已關閉';
+  } else if (desktopStartupState.installationType === 'portable') {
+    $('#settingsStartupStatus').textContent = 'Portable 不建立永久啟動項目；請使用 Setup 安裝版。';
+  } else {
+    $('#settingsStartupStatus').textContent = '僅 Windows Setup 安裝版支援；開發模式不會建立啟動項目。';
+  }
 }
 
 // 顯示 localStorage 寫入失敗等需要使用者留意的設定訊息。
@@ -315,7 +365,7 @@ export function updateSettingsNotice(message) {
 }
 
 // 綁定設定中心開關與控制項；所有設定變更只回傳給 app.js 更新集中 state。
-export function bindSettingsControls({ onChange }) {
+export function bindSettingsControls({ onChange, onStartupChange }) {
   $('#settingsButton').addEventListener('click', openSettingsModal);
   $('#settingsCloseButton').addEventListener('click', closeSettingsModal);
   $('[data-settings-close]').addEventListener('click', closeSettingsModal);
@@ -331,6 +381,8 @@ export function bindSettingsControls({ onChange }) {
   $('#settingsLeadMinutes').addEventListener('change', event => onChange({ alarmLeadMinutes: Number(event.target.value) }));
   $('#settingsTheme').addEventListener('change', event => onChange({ theme: event.target.value }));
   $('#settingsDebugPanel').addEventListener('change', event => onChange({ debugPanelOpen: event.target.checked }));
+  $('#settingsDailyImportReminder').addEventListener('change', event => onChange({ dailyImportReminderEnabled: event.target.checked }));
+  $('#settingsStartupEnabled').addEventListener('change', event => onStartupChange(event.target.checked));
 }
 
 // 顯示或隱藏場次表格下方的空狀態與錯誤提示。

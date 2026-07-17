@@ -58,6 +58,15 @@ export function getScheduleDebugInfo(state, now = new Date(), runtime = {}) {
     tickerIdExists: Boolean(runtime.tickerIdExists),
     lastTickAt: formatDebugDateTime(state?.lastTickerUpdatedAt),
     pageVisible: Boolean(runtime.pageVisible),
+    startupSupported: Boolean(state?.desktopStartupState?.supported),
+    startupEnabled: Boolean(state?.desktopStartupState?.enabled),
+    startupExecutableWillLaunch: Boolean(state?.desktopStartupState?.executableWillLaunchAtLogin),
+    desktopInstallationType: state?.desktopStartupState?.installationType || 'browser',
+    hasTodaySchedule: Boolean(state?.dailyReminderDebug?.hasTodaySchedule),
+    dailyReminderTimerScheduled: Boolean(state?.dailyReminderDebug?.reminderTimerScheduled),
+    lastDailyReminderCheckAt: formatDebugDateTime(state?.dailyReminderDebug?.lastReminderCheckAt),
+    dailyNotificationShown: Boolean(state?.dailyReminderDebug?.notificationShown),
+    dailyNotificationError: state?.dailyReminderDebug?.notificationError || '—',
     alarmEnabled: Boolean(state?.alarmEnabled),
     alarmToggleLabel: state?.alarmEnabled ? '鬧鐘已開啟' : '鬧鐘已關閉',
     alarmStatusText: state?.alarmEnabled ? '鬧鐘已開啟' : '鬧鐘已關閉',
@@ -103,6 +112,7 @@ export function getScheduleDebugInfo(state, now = new Date(), runtime = {}) {
     modalOpenedAt: formatDebugDateTime(state?.desktopAlarmDebug?.modalOpenedAt),
     audioPlayCalledAt: formatDebugDateTime(state?.desktopAlarmDebug?.audioPlayCalledAt),
     audioPlayResolvedAt: formatDebugDateTime(state?.desktopAlarmDebug?.audioPlayResolvedAt),
-    rendererAudioPlayError: state?.desktopAlarmDebug?.audioPlayError || '—'
+    rendererAudioPlayError: state?.desktopAlarmDebug?.audioPlayError || '—',
+    webContentsAudioMuted: state?.desktopAlarmDebug?.webContentsAudioMuted ?? '—'
   };
 }

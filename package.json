@@ -1,7 +1,7 @@
 {
   "name": "movie-schedule-alarm",
   "productName": "Movie Schedule Alarm",
-  "version": "1.0.0-preview.2",
+  "version": "1.0.0-preview.3",
   "description": "Movie Schedule Alarm Windows Desktop Preview",
   "main": "electron/main.cjs",
   "private": true,
@@ -49,10 +49,16 @@
       ]
     },
     "portable": {
-      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.2-Portable.${ext}"
+      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.3-Portable.${ext}"
     },
     "nsis": {
-      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.2-Setup.${ext}"
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Movie Schedule Alarm",
+      "runAfterFinish": true,
+      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.3-Setup.${ext}"
     }
   }
 }

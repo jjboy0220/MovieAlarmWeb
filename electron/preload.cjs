@@ -12,3 +12,20 @@ contextBridge.exposeInMainWorld('desktopAlarm', Object.freeze({
     return () => ipcRenderer.removeListener('desktop-alarm:triggered', listener);
   }
 }));
+
+// 僅暴露 Windows 登入啟動狀態的讀取與布林切換，不提供路徑或任意 IPC 能力。
+contextBridge.exposeInMainWorld('desktopStartup', Object.freeze({
+  getState: () => ipcRenderer.invoke('desktop-startup:get-state'),
+  setEnabled: enabled => ipcRenderer.invoke('desktop-startup:set-enabled', enabled)
+}));
+
+// 僅暴露今日場次原生通知與點擊回呼，不提供 Notification 或視窗控制權。
+contextBridge.exposeInMainWorld('desktopScheduleReminder', Object.freeze({
+  notify: () => ipcRenderer.invoke('desktop-schedule-reminder:notify'),
+  onShowRequested: callback => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = () => callback();
+    ipcRenderer.on('desktop-schedule-reminder:show', listener);
+    return () => ipcRenderer.removeListener('desktop-schedule-reminder:show', listener);
+  }
+}));

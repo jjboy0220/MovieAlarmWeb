@@ -24,9 +24,25 @@ body.settings-open { overflow: hidden; }
 .settings-check strong, .settings-check small { display: block; }
 .settings-check small { margin-top: 3px; color: var(--text-secondary); font-size: .82rem; font-weight: 400; line-height: 1.45; }
 .settings-notice { margin: 0; padding: 10px 12px; border: 1px solid #f59e0b; border-radius: 9px; background: rgba(245, 158, 11, .12); color: var(--text-primary); font-size: .88rem; font-weight: 700; }
+.settings-desktop-group { display: grid; gap: 10px; }
+.settings-desktop-group[hidden] { display: none; }
+.settings-inline-status { margin: -4px 0 4px; padding: 0 13px; color: var(--text-secondary); font-size: .82rem; line-height: 1.45; }
+.schedule-reminder-modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: clamp(16px, 4vw, 40px); }
+.schedule-reminder-modal[hidden] { display: none; }
+.schedule-reminder-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .58); }
+.schedule-reminder-dialog { position: relative; width: min(520px, 100%); padding: clamp(24px, 4vw, 38px); border: 1px solid var(--border-strong); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-card); color: var(--text-primary); }
+.schedule-reminder-dialog h2 { margin: 8px 0 12px; font-size: clamp(1.5rem, 4vw, 2rem); }
+.schedule-reminder-dialog > p:not(.eyebrow) { margin: 0; color: var(--text-secondary); line-height: 1.65; }
+.schedule-reminder-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.schedule-reminder-actions button { min-height: 42px; padding: 0 16px; border-radius: 9px; cursor: pointer; font: inherit; font-weight: 800; }
+.schedule-reminder-primary { border: 1px solid var(--primary); background: var(--primary); color: #fff; }
+.schedule-reminder-secondary { border: 1px solid var(--border); background: var(--surface-soft); color: var(--text-primary); }
+.schedule-reminder-actions button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
 @media (max-width: 760px) {
   .settings-button { width: 34px; padding: 7px; font-size: 0; }
   .settings-button::before { content: '⚙'; font-size: 1rem; }
   .settings-modal { align-items: end; padding: 10px; }
   .settings-dialog { max-height: calc(100dvh - 20px); border-radius: 18px; }
+  .schedule-reminder-modal { align-items: end; padding: 10px; }
+  .schedule-reminder-dialog { border-radius: 18px; }
 }

@@ -14,7 +14,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
   debugPanelOpen: false,
   alarmVolume: 1,
   alarmSoundMode: 'DEFAULT',
-  alarmLeadMinutes: 0
+  alarmLeadMinutes: 0,
+  startupEnabled: true,
+  dailyImportReminderEnabled: true
 });
 
 // V1.0 僅提供本機警報聲與靜音視覺提醒，不新增外部音效資源。

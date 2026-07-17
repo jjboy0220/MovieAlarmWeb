@@ -77,6 +77,13 @@ export function createAlarmChannel() {
     audio.volume = getAlarmVolume(settings);
   }
 
+  // 僅將既有唯一警報狀態設為啟用，不播放聲音；供 Desktop 每次啟動建立預設狀態。
+  function enableAlarm(settings) {
+    runtime.enabled = true;
+    runtime.audioPlayError = '';
+    applySettings(settings);
+  }
+
   // 在使用者點選開關的事件中靜音播放一次，安全地取得瀏覽器音效權限而不播放正式警報。
   async function unlock(settings) {
     if (isSilentMode(settings)) {
@@ -165,7 +172,7 @@ export function createAlarmChannel() {
     return runtime.active;
   }
 
-  sharedAlarmChannel = { getState, applySettings, unlock, startAlarm, stopAlarm, disableAlarm, isAlarmActive };
+  sharedAlarmChannel = { getState, applySettings, enableAlarm, unlock, startAlarm, stopAlarm, disableAlarm, isAlarmActive };
   return sharedAlarmChannel;
 }
 

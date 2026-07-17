@@ -1,20 +1,25 @@
 import { APP_NAME, VERSION } from './config.js';
-import { loadSettings, normalizeSettings, saveSettings } from './settings.js';
+import { hasStoredStartupPreference, loadSettings, normalizeSettings, saveSettings } from './settings.js';
 import { readExcel } from './excelReader.js';
 import { createSessionGroupKey, getLatestUntriggeredSessionGroup, getNextMoviePresentationState, sortSessionsByStart, updateSessionStatuses } from './scheduler.js';
 import { formatCountdown, getCountdownSeconds, getCountdownTickerStatus, startCountdownTicker } from './countdown.js';
 import { createAlarmChannel } from './alarm.js';
 import { getScheduleDebugInfo } from './debug.js';
-import { applyTheme, bindAlarmControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, hideAlarmModal, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateDebugPanel, updateFileStatus, updateNextMovieCard, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
+import { applyTheme, bindAlarmControls, bindDailyImportReminder, bindDebugPanel, bindSettingsControls, bindThemeToggle, hideAlarmModal, hideDailyImportReminder, showDailyImportReminder, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateDebugPanel, updateFileStatus, updateNextMovieCard, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
 import { createEmptyTable, renderMovieRows } from './table.js';
 import { bindSearch, matchesSearch } from './search.js';
 import { bindFilters, matchesFilters, populateFilterOptions } from './filter.js';
 import { summarizeSessions } from './statistics.js';
+import { createDailyReminderTimer, hasTodaySchedule, INITIAL_DAILY_REMINDER_DELAY_MS, SNOOZE_DAILY_REMINDER_DELAY_MS } from './dailyReminder.js';
 
 const alarmChannel = createAlarmChannel();
 const desktopAlarm = globalThis.desktopAlarm || null;
+const desktopStartup = globalThis.desktopStartup || null;
+const desktopScheduleReminder = globalThis.desktopScheduleReminder || null;
+const DAILY_REMINDER_STORAGE_KEY = 'movieScheduleAlarm.dailyReminder.v1';
 let desktopAlarmScheduleSignature = '';
 let unsubscribeDesktopAlarm = null;
+let unsubscribeDesktopScheduleReminder = null;
 
 // 單一應用程式狀態，所有清單、警報、搜尋、篩選、Next Movie 與偵錯資訊都由此處驅動。
 const state = {
@@ -39,6 +44,21 @@ const state = {
   audioPlayError: '',
   missedAlarmGroup: null,
   pageWasHidden: false,
+  desktopStartupState: {
+    isDesktop: Boolean(desktopStartup),
+    supported: false,
+    enabled: false,
+    openAtLogin: false,
+    executableWillLaunchAtLogin: false,
+    installationType: desktopStartup ? 'development' : 'browser'
+  },
+  dailyReminderDebug: {
+    hasTodaySchedule: false,
+    reminderTimerScheduled: false,
+    lastReminderCheckAt: null,
+    notificationShown: false,
+    notificationError: ''
+  },
   desktopAlarmDebug: {
     desktopAlarmScheduled: false,
     scheduleReceivedAt: null,
@@ -74,14 +94,125 @@ const state = {
     modalOpenedAt: null,
     audioPlayCalledAt: null,
     audioPlayResolvedAt: null,
-    audioPlayError: ''
+    audioPlayError: '',
+    webContentsAudioMuted: null
   }
 };
+
+const dailyReminderTimer = createDailyReminderTimer(() => {
+  void checkDailyScheduleReminder();
+});
 
 // 將 Main Process 回傳的桌面警報狀態合併到集中 state，供既有 Debug Panel 顯示。
 function applyDesktopAlarmDebug(debugInfo) {
   if (!debugInfo || typeof debugInfo !== 'object') return;
   state.desktopAlarmDebug = { ...state.desktopAlarmDebug, ...debugInfo };
+}
+
+// 儲存當日提醒日期與稍後提醒時間，不保存 Excel 或任何場次內容。
+function saveDailyReminderState(patch) {
+  try {
+    const saved = globalThis.localStorage?.getItem(DAILY_REMINDER_STORAGE_KEY);
+    const current = saved ? JSON.parse(saved) : {};
+    globalThis.localStorage?.setItem(DAILY_REMINDER_STORAGE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    state.dailyReminderDebug.notificationError = '今日場次提醒狀態無法儲存';
+  }
+}
+
+// 產生本機今天的 YYYY-MM-DD 日期鍵，只用於提醒狀態記錄。
+function getLocalTodayKey(now = new Date()) {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// 更新唯一提醒 Timer 的 Debug 狀態。
+function syncDailyReminderTimerDebug() {
+  state.dailyReminderDebug.reminderTimerScheduled = dailyReminderTimer.isScheduled();
+}
+
+// 取消今日提醒 Timer 並關閉 Modal，供成功匯入今日場次時共用。
+function completeDailyScheduleReminder() {
+  dailyReminderTimer.cancel();
+  syncDailyReminderTimerDebug();
+  hideDailyImportReminder();
+}
+
+// 檢查集中 sessions 是否包含今日場次；缺少時顯示 Modal 並請 Main Process 顯示原生通知。
+async function checkDailyScheduleReminder() {
+  syncDailyReminderTimerDebug();
+  if (!desktopScheduleReminder || !state.settings.dailyImportReminderEnabled) return;
+
+  const now = new Date();
+  const hasToday = hasTodaySchedule(state.sessions, now);
+  Object.assign(state.dailyReminderDebug, {
+    hasTodaySchedule: hasToday,
+    lastReminderCheckAt: now,
+    notificationShown: false,
+    notificationError: ''
+  });
+  if (hasToday) {
+    completeDailyScheduleReminder();
+    updateDebugPanelFromState(now);
+    return;
+  }
+
+  showDailyImportReminder();
+  saveDailyReminderState({ lastScheduleReminderDate: getLocalTodayKey(now) });
+  try {
+    const result = await desktopScheduleReminder.notify();
+    state.dailyReminderDebug.notificationShown = Boolean(result?.notificationShown);
+    state.dailyReminderDebug.notificationError = result?.notificationError || '';
+  } catch (error) {
+    state.dailyReminderDebug.notificationError = error instanceof Error ? error.message : 'Windows 原生通知顯示失敗';
+  }
+  updateDebugPanelFromState(new Date());
+}
+
+// 安排唯一的今日場次提醒 Timer，停用設定或已有今日場次時不建立 Timer。
+function scheduleDailyReminder(delayMs) {
+  if (!desktopScheduleReminder || !state.settings.dailyImportReminderEnabled || hasTodaySchedule(state.sessions)) {
+    completeDailyScheduleReminder();
+    return;
+  }
+  dailyReminderTimer.schedule(delayMs);
+  syncDailyReminderTimerDebug();
+  updateDebugPanelFromState(new Date());
+}
+
+// 讀取 Setup 的實際 Windows 啟動狀態；首次遷移才套用預設開啟，避免覆蓋系統停用。
+async function initializeDesktopStartup() {
+  if (!desktopStartup) return;
+  try {
+    let startupState = await desktopStartup.getState();
+    if (startupState.supported && state.settings.startupEnabled && !hasStoredStartupPreference()) {
+      startupState = await desktopStartup.setEnabled(true);
+      saveSettings(state.settings);
+    }
+    state.desktopStartupState = { ...state.desktopStartupState, ...startupState };
+  } catch (error) {
+    updateSettingsNotice(error instanceof Error ? error.message : '無法讀取 Windows 開機啟動狀態');
+  }
+  updateSettingsForm(state.settings, state.desktopStartupState);
+  updateDebugPanelFromState(new Date());
+}
+
+// 由設定中心切換 Setup 登入啟動，並以 Main Process 回傳的實際 Windows 狀態更新畫面。
+async function updateDesktopStartup(enabled) {
+  if (!desktopStartup || typeof enabled !== 'boolean') return;
+  try {
+    const startupState = await desktopStartup.setEnabled(enabled);
+    state.desktopStartupState = { ...state.desktopStartupState, ...startupState };
+    state.settings = normalizeSettings({ ...state.settings, startupEnabled: startupState.supported ? enabled : state.settings.startupEnabled });
+    const saved = saveSettings(state.settings);
+    updateSettingsNotice(saved.success ? '' : saved.message);
+  } catch (error) {
+    updateSettingsNotice(error instanceof Error ? error.message : '無法更新 Windows 開機啟動設定');
+  }
+  updateSettingsForm(state.settings, state.desktopStartupState);
+  updateDebugPanelFromState(new Date());
 }
 
 // 由完整 sessions 找回已驗證 groupKey 的原始群組，Main Process 不持有第二份場次 state。
@@ -177,10 +308,17 @@ function updateSettings(patch, shouldPersist = true) {
   state.settings = normalizeSettings({ ...state.settings, ...patch });
   applyTheme(state.settings.theme);
   alarmChannel.applySettings(state.settings);
-  updateSettingsForm(state.settings);
+  updateSettingsForm(state.settings, state.desktopStartupState);
 
   const result = shouldPersist ? saveSettings(state.settings) : { success: true, message: '' };
   updateSettingsNotice(result.success ? '' : result.message);
+  if (Object.prototype.hasOwnProperty.call(patch, 'dailyImportReminderEnabled')) {
+    if (state.settings.dailyImportReminderEnabled) {
+      scheduleDailyReminder(INITIAL_DAILY_REMINDER_DELAY_MS);
+    } else {
+      completeDailyScheduleReminder();
+    }
+  }
   void syncDesktopAlarmSchedule();
   updateDebugPanelFromState(new Date());
 }
@@ -416,6 +554,15 @@ async function importSchedule(file) {
       hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
     });
     updateFileStatus(getImportedStatus(file.name, sheetName, state.sessions.length, importedTime));
+    if (hasTodaySchedule(state.sessions, importedAt)) {
+      state.dailyReminderDebug.hasTodaySchedule = true;
+      completeDailyScheduleReminder();
+    } else if (desktopScheduleReminder && state.settings.dailyImportReminderEnabled) {
+      state.dailyReminderDebug.hasTodaySchedule = false;
+      updateFileStatus(`${getImportedStatus(file.name, sheetName, state.sessions.length, importedTime)}；此場次表不是今天的日期，請確認檔案是否正確。`);
+      scheduleDailyReminder(SNOOZE_DAILY_REMINDER_DELAY_MS);
+    }
+    updateDebugPanelFromState(new Date());
   } catch (error) {
     updateFileStatus(`匯入失敗：${error.message}；已保留上一份資料。`);
   }
@@ -436,11 +583,23 @@ function bindVisibilityRefresh() {
 function init() {
   document.title = `${APP_NAME} V${VERSION}`;
   updateSettings({}, false);
+  if (desktopAlarm) alarmChannel.enableAlarm(state.settings);
   syncAlarmRuntimeState();
   bindThemeToggle(() => {
     updateSettings({ theme: state.settings.theme === 'light' ? 'dark' : 'light' });
   });
-  bindSettingsControls({ onChange: updateSettings });
+  bindSettingsControls({ onChange: updateSettings, onStartupChange: updateDesktopStartup });
+  bindDailyImportReminder({
+    onUpload: () => {
+      hideDailyImportReminder();
+      document.querySelector('#fileInput').click();
+    },
+    onSnooze: () => {
+      hideDailyImportReminder();
+      saveDailyReminderState({ lastReminderDismissedAt: new Date().toISOString() });
+      scheduleDailyReminder(SNOOZE_DAILY_REMINDER_DELAY_MS);
+    }
+  });
   bindAlarmControls({
     onToggle: toggleAlarmSound,
     onStop: stopActiveAlarm
@@ -463,8 +622,15 @@ function init() {
   });
   bindVisibilityRefresh();
   unsubscribeDesktopAlarm = desktopAlarm?.onTriggered(handleDesktopAlarmTriggered) || null;
-  window.addEventListener('beforeunload', () => unsubscribeDesktopAlarm?.(), { once: true });
+  unsubscribeDesktopScheduleReminder = desktopScheduleReminder?.onShowRequested(() => showDailyImportReminder()) || null;
+  window.addEventListener('beforeunload', () => {
+    dailyReminderTimer.cancel();
+    unsubscribeDesktopAlarm?.();
+    unsubscribeDesktopScheduleReminder?.();
+  }, { once: true });
   renderFromState();
+  void initializeDesktopStartup();
+  scheduleDailyReminder(INITIAL_DAILY_REMINDER_DELAY_MS);
   startCountdownTicker(handleTimeTick);
 }
 

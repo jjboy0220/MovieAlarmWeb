@@ -26,15 +26,32 @@
     <div id="settingsModal" class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
       <div class="settings-backdrop" data-settings-close></div>
       <section class="settings-dialog" tabindex="-1">
-        <div class="settings-head"><div><p class="eyebrow">SETTINGS</p><h2 id="settingsTitle">設定中心</h2><p>一般設定會保留在此瀏覽器；鬧鐘開關與音訊解鎖每次重新整理後仍會關閉。</p></div><button id="settingsCloseButton" class="settings-close-button" type="button" aria-label="關閉設定中心">×</button></div>
+        <div class="settings-head"><div><p class="eyebrow">SETTINGS</p><h2 id="settingsTitle">設定中心</h2><p>一般設定會保留在此裝置；Desktop 鬧鐘每次啟動時預設開啟，瀏覽器版本仍需手動開啟。</p></div><button id="settingsCloseButton" class="settings-close-button" type="button" aria-label="關閉設定中心">×</button></div>
         <form id="settingsForm" class="settings-form">
           <label class="settings-field" for="settingsVolume"><span>警報音量</span><div class="settings-range-row"><input id="settingsVolume" type="range" min="0" max="100" step="5" value="100"><output id="settingsVolumeValue" for="settingsVolume">100%</output></div></label>
           <label class="settings-field" for="settingsSoundMode"><span>警報音效</span><select id="settingsSoundMode"><option value="DEFAULT">預設警報聲</option><option value="SILENT">靜音（保留視覺提醒）</option></select></label>
           <label class="settings-field" for="settingsLeadMinutes"><span>提前提醒</span><select id="settingsLeadMinutes"><option value="0">準時提醒</option><option value="1">提前 1 分鐘</option><option value="3">提前 3 分鐘</option><option value="5">提前 5 分鐘</option><option value="10">提前 10 分鐘</option><option value="15">提前 15 分鐘</option></select></label>
           <label class="settings-field" for="settingsTheme"><span>外觀主題</span><select id="settingsTheme"><option value="dark">深色模式</option><option value="light">淺色模式</option></select></label>
           <label class="settings-check" for="settingsDebugPanel"><input id="settingsDebugPanel" type="checkbox"><span><strong>顯示偵錯資訊</strong><small>預設展開下方的偵錯面板，不會建立額外計時器。</small></span></label>
+          <section id="desktopSettingsGroup" class="settings-desktop-group" aria-label="Windows 桌面設定" hidden>
+            <label class="settings-check" for="settingsStartupEnabled"><input id="settingsStartupEnabled" type="checkbox"><span><strong>開機時自動啟動</strong><small>登入 Windows 後自動開啟 Movie Schedule Alarm。</small></span></label>
+            <p id="settingsStartupStatus" class="settings-inline-status" role="status"></p>
+            <label class="settings-check" for="settingsDailyImportReminder"><input id="settingsDailyImportReminder" type="checkbox"><span><strong>今日場次提醒</strong><small>尚未匯入今日場次時，啟動後會顯示提醒。</small></span></label>
+          </section>
           <p id="settingsStorageNotice" class="settings-notice" role="status" aria-live="polite" hidden></p>
         </form>
+      </section>
+    </div>
+    <div id="dailyImportReminderModal" class="schedule-reminder-modal" role="dialog" aria-modal="true" aria-labelledby="dailyImportReminderTitle" hidden>
+      <div class="schedule-reminder-backdrop"></div>
+      <section class="schedule-reminder-dialog" tabindex="-1">
+        <p class="eyebrow">DAILY SCHEDULE</p>
+        <h2 id="dailyImportReminderTitle">尚未匯入今日場次表</h2>
+        <p>請上傳當日場次表，以啟用場次監控、倒數與鬧鐘提醒。</p>
+        <div class="schedule-reminder-actions">
+          <button id="uploadTodayScheduleButton" class="schedule-reminder-primary" type="button">上傳當日場次表</button>
+          <button id="snoozeTodayScheduleButton" class="schedule-reminder-secondary" type="button">稍後提醒</button>
+        </div>
       </section>
     </div>
     <div id="alarmModal" class="alarm-modal" role="dialog" aria-modal="true" aria-labelledby="alarmModalTitle" hidden>

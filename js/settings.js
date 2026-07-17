@@ -15,8 +15,24 @@ export function normalizeSettings(candidate = {}) {
     debugPanelOpen: Boolean(source.debugPanelOpen),
     alarmVolume: Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : DEFAULT_SETTINGS.alarmVolume,
     alarmSoundMode: soundMode,
-    alarmLeadMinutes: ALARM_LEAD_MINUTES.includes(leadMinutes) ? leadMinutes : DEFAULT_SETTINGS.alarmLeadMinutes
+    alarmLeadMinutes: ALARM_LEAD_MINUTES.includes(leadMinutes) ? leadMinutes : DEFAULT_SETTINGS.alarmLeadMinutes,
+    startupEnabled: typeof source.startupEnabled === 'boolean' ? source.startupEnabled : DEFAULT_SETTINGS.startupEnabled,
+    dailyImportReminderEnabled: typeof source.dailyImportReminderEnabled === 'boolean'
+      ? source.dailyImportReminderEnabled
+      : DEFAULT_SETTINGS.dailyImportReminderEnabled
   };
+}
+
+// 判斷舊版 localStorage 是否已保存開機啟動偏好，避免每次啟動覆蓋 Windows 外部停用狀態。
+export function hasStoredStartupPreference() {
+  try {
+    const saved = globalThis.localStorage?.getItem(SETTINGS_STORAGE_KEY);
+    if (!saved) return false;
+    const parsed = JSON.parse(saved);
+    return Boolean(parsed && typeof parsed === 'object' && typeof parsed.startupEnabled === 'boolean');
+  } catch {
+    return false;
+  }
 }
 
 // 從瀏覽器 localStorage 讀取一般設定；資料缺失或損壞時安全回退為預設值。
