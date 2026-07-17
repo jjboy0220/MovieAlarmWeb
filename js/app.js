@@ -1,7 +1,7 @@
 import { APP_NAME, VERSION } from './config.js';
 import { loadSettings, normalizeSettings, saveSettings } from './settings.js';
 import { readExcel } from './excelReader.js';
-import { getLatestUntriggeredSessionGroup, getNextMoviePresentationState, sortSessionsByStart, updateSessionStatuses } from './scheduler.js';
+import { createSessionGroupKey, getLatestUntriggeredSessionGroup, getNextMoviePresentationState, sortSessionsByStart, updateSessionStatuses } from './scheduler.js';
 import { formatCountdown, getCountdownSeconds, getCountdownTickerStatus, startCountdownTicker } from './countdown.js';
 import { createAlarmChannel } from './alarm.js';
 import { getScheduleDebugInfo } from './debug.js';
@@ -12,6 +12,9 @@ import { bindFilters, matchesFilters, populateFilterOptions } from './filter.js'
 import { summarizeSessions } from './statistics.js';
 
 const alarmChannel = createAlarmChannel();
+const desktopAlarm = globalThis.desktopAlarm || null;
+let desktopAlarmScheduleSignature = '';
+let unsubscribeDesktopAlarm = null;
 
 // 單一應用程式狀態，所有清單、警報、搜尋、篩選、Next Movie 與偵錯資訊都由此處驅動。
 const state = {
@@ -35,8 +38,139 @@ const state = {
   audioLoadStatus: '載入中',
   audioPlayError: '',
   missedAlarmGroup: null,
-  pageWasHidden: false
+  pageWasHidden: false,
+  desktopAlarmDebug: {
+    desktopAlarmScheduled: false,
+    scheduleReceivedAt: null,
+    scheduledGroupKey: '',
+    scheduledStartTimestamp: null,
+    calculatedDelayMs: null,
+    alarmEnabled: false,
+    timerCreated: false,
+    rendererWebContentsId: null,
+    mainProcessAlarmTriggeredAt: null,
+    mainTimerFiredAt: null,
+    mainTimerDelayMs: null,
+    windowExists: false,
+    windowWasMinimized: false,
+    windowWasVisible: false,
+    windowWasFocused: false,
+    rendererDestroyed: true,
+    windowRestored: false,
+    ipcTriggerSentAt: null,
+    ipcTriggerSendSucceeded: false,
+    wakeSequenceCompleted: false,
+    alwaysOnTopActive: false,
+    flashFrameActive: false,
+    lastResumeCheckAt: null,
+    missedAlarmDetected: false,
+    ipcScheduleError: '',
+    rendererTriggerReceivedAt: null,
+    receivedGroupKey: '',
+    documentVisibilityState: '',
+    documentHasFocus: false,
+    audioUnlocked: false,
+    rendererAlarmEnabled: false,
+    modalOpenedAt: null,
+    audioPlayCalledAt: null,
+    audioPlayResolvedAt: null,
+    audioPlayError: ''
+  }
 };
+
+// 將 Main Process 回傳的桌面警報狀態合併到集中 state，供既有 Debug Panel 顯示。
+function applyDesktopAlarmDebug(debugInfo) {
+  if (!debugInfo || typeof debugInfo !== 'object') return;
+  state.desktopAlarmDebug = { ...state.desktopAlarmDebug, ...debugInfo };
+}
+
+// 由完整 sessions 找回已驗證 groupKey 的原始群組，Main Process 不持有第二份場次 state。
+function findSessionGroupByKey(groupKey) {
+  const sessions = state.sessions.filter(session => createSessionGroupKey(session.startDateTime) === groupKey);
+  if (!sessions.length) return null;
+  return {
+    groupKey,
+    startDateTime: sessions[0].startDateTime,
+    startDate: new Date(sessions[0].startDateTime),
+    sessions
+  };
+}
+
+// 建立 Main Process 唯一需要的下一群組衍生資料，不傳送完整 state.sessions。
+function createDesktopAlarmPayload(group) {
+  const firstSession = group?.sessions?.[0];
+  const startTimestamp = group?.startDate?.getTime?.() ?? new Date(group?.startDateTime).getTime();
+  if (!firstSession || !Number.isFinite(startTimestamp)) return null;
+  return {
+    groupKey: group.groupKey,
+    startTimestamp,
+    scheduleGeneration: state.importedAt?.getTime?.() || 0,
+    leadMinutes: state.settings.alarmLeadMinutes,
+    alarmEnabled: state.alarmEnabled,
+    dateLabel: `${firstSession.date || ''} ${firstSession.weekday || ''}`.trim(),
+    timeLabel: firstSession.start || '',
+    sessions: group.sessions.map(session => ({
+      hall: session.hall || '',
+      title: session.title || '',
+      language: session.language || '',
+      format: session.formatDisplay || session.format || ''
+    }))
+  };
+}
+
+// 只在下一群組、提醒時間或鬧鐘開關改變時同步 Main Process，避免每秒重建排程。
+async function syncDesktopAlarmSchedule() {
+  if (!desktopAlarm) return;
+  const payload = createDesktopAlarmPayload(state.nextSessionGroup);
+  const signature = payload
+    ? `${payload.scheduleGeneration}|${payload.groupKey}|${payload.startTimestamp}|${payload.leadMinutes}|${payload.alarmEnabled}`
+    : 'cancelled';
+  if (signature === desktopAlarmScheduleSignature) return;
+  desktopAlarmScheduleSignature = signature;
+
+  try {
+    const debugInfo = payload ? await desktopAlarm.schedule(payload) : await desktopAlarm.cancel();
+    applyDesktopAlarmDebug(debugInfo);
+  } catch (error) {
+    state.desktopAlarmDebug.ipcScheduleError = error instanceof Error ? error.message : '桌面警報 IPC 排程失敗';
+  }
+  updateDebugPanelFromState(new Date());
+}
+
+// 接收 Main Process 到點事件，使用集中 sessions 顯示既有 Modal 或只記錄關閉期間的群組。
+function handleDesktopAlarmTriggered(payload) {
+  applyDesktopAlarmDebug(payload?.debug);
+  const groupKey = typeof payload?.groupKey === 'string' ? payload.groupKey : '';
+  Object.assign(state.desktopAlarmDebug, {
+    rendererTriggerReceivedAt: Date.now(),
+    receivedGroupKey: groupKey,
+    documentVisibilityState: document.visibilityState,
+    documentHasFocus: document.hasFocus(),
+    audioUnlocked: state.alarmUnlocked,
+    rendererAlarmEnabled: state.alarmEnabled,
+    modalOpenedAt: null,
+    audioPlayCalledAt: null,
+    audioPlayResolvedAt: null,
+    audioPlayError: ''
+  });
+  const group = findSessionGroupByKey(groupKey);
+  if (!group || state.triggeredAlarmGroups.has(groupKey)) {
+    void desktopAlarm?.acknowledge(groupKey).then(applyDesktopAlarmDebug).catch(() => {});
+    return;
+  }
+  if (state.activeAlarmGroup) {
+    state.triggeredAlarmGroups.add(groupKey);
+    state.missedAlarmGroup = group;
+    void desktopAlarm?.acknowledge(groupKey).then(applyDesktopAlarmDebug).catch(() => {});
+    return;
+  }
+
+  triggerAlarmGroup(group, new Date(), Boolean(payload?.missedAlarmDetected));
+  if (!payload?.shouldAlert || !state.alarmEnabled) {
+    void desktopAlarm?.acknowledge(groupKey).then(applyDesktopAlarmDebug).catch(() => {});
+  }
+  updateDebugPanelFromState(new Date());
+}
 
 // 將設定變更正規化後存入唯一 state，套用到 UI 與既有 Audio Channel，且不建立額外 Timer。
 function updateSettings(patch, shouldPersist = true) {
@@ -47,6 +181,7 @@ function updateSettings(patch, shouldPersist = true) {
 
   const result = shouldPersist ? saveSettings(state.settings) : { success: true, message: '' };
   updateSettingsNotice(result.success ? '' : result.message);
+  void syncDesktopAlarmSchedule();
   updateDebugPanelFromState(new Date());
 }
 // 將唯一 Audio Alarm Channel 的執行快照同步到集中 state，供 UI 與偵錯面板讀取。
@@ -99,7 +234,10 @@ function updateDebugPanelFromState(now = new Date()) {
 
 // 實際啟動警報音效；播放失敗時仍保留 Modal，並以非阻塞訊息提示使用者。
 async function playAlarmForGroup(group) {
+  state.desktopAlarmDebug.audioPlayCalledAt = Date.now();
   const result = await alarmChannel.startAlarm(state.settings);
+  state.desktopAlarmDebug.audioPlayResolvedAt = Date.now();
+  state.desktopAlarmDebug.audioPlayError = result.message || '';
   syncAlarmRuntimeState();
 
   if (state.activeAlarmGroup?.groupKey === group.groupKey) {
@@ -120,6 +258,7 @@ function triggerAlarmGroup(group, now, isMissed) {
   state.lastAlarmTriggeredAt = now;
   state.activeAlarmGroup = group;
   showAlarmModal(group, getAlarmAudioNotice(), state.settings.alarmLeadMinutes);
+  state.desktopAlarmDebug.modalOpenedAt = Date.now();
   void playAlarmForGroup(group);
 }
 
@@ -143,11 +282,15 @@ function checkAlarmSchedule(now, previousTickAt, resumedFromBackground) {
 
 // 停止音效、關閉 Modal 並保留已觸發群組紀錄，避免停止後重新觸發同一場次。
 function stopActiveAlarm() {
+  const stoppedGroupKey = state.activeAlarmGroup?.groupKey || '';
   alarmChannel.stopAlarm(state.settings);
   state.activeAlarmGroup = null;
   syncAlarmRuntimeState();
   hideAlarmModal();
   updateNextMovieClock(new Date());
+  if (desktopAlarm) {
+    void desktopAlarm.acknowledge(stoppedGroupKey).then(applyDesktopAlarmDebug).catch(() => {});
+  }
   updateDebugPanelFromState(new Date());
 }
 
@@ -157,6 +300,7 @@ async function enableAlarmSound() {
   syncAlarmRuntimeState();
   updateAlarmNotice(result.success ? '' : result.message);
   updateActiveAlarmNotice();
+  void syncDesktopAlarmSchedule();
   updateDebugPanelFromState(new Date());
   return result;
 }
@@ -167,6 +311,7 @@ function disableAlarmSound() {
   alarmChannel.disableAlarm(state.settings);
   syncAlarmRuntimeState();
   updateAlarmNotice('');
+  void syncDesktopAlarmSchedule();
   updateDebugPanelFromState(new Date());
 }
 
@@ -180,10 +325,10 @@ function toggleAlarmSound() {
 }
 // 集中處理唯一 ticker 的每秒更新，讓 Alarm、Next Movie 與展開的偵錯面板共用同一個時間來源。
 function handleTimeTick(now = new Date(), resumedFromBackground = false) {
-  if (document.hidden) return;
+  if (document.hidden && !desktopAlarm) return;
 
   const previousTickAt = state.lastTickerUpdatedAt;
-  checkAlarmSchedule(now, previousTickAt, resumedFromBackground || state.pageWasHidden);
+  if (!desktopAlarm) checkAlarmSchedule(now, previousTickAt, resumedFromBackground || state.pageWasHidden);
   state.lastTickerUpdatedAt = now;
   state.pageWasHidden = false;
   syncAlarmRuntimeState();
@@ -213,6 +358,7 @@ function renderFromState(now = new Date()) {
   }
 
   updateDebugPanelFromState(now);
+  void syncDesktopAlarmSchedule();
 }
 
 // 依目前播放狀態篩選建立空結果文案；另有搜尋或其他篩選時統一使用一般提示。
@@ -240,6 +386,8 @@ function getImportedStatus(fileName, sheetName, sessionCount, importedTime) {
 
 // 在新的場次表成功匯入前停止舊警報並清除舊群組觸發紀錄，保留唯一 Audio Channel。
 function resetAlarmStateForImport() {
+  desktopAlarmScheduleSignature = '';
+  if (desktopAlarm) void desktopAlarm.cancel().then(applyDesktopAlarmDebug).catch(() => {});
   stopActiveAlarm();
   state.triggeredAlarmGroups = new Set();
   state.activeAlarmGroup = null;
@@ -314,6 +462,8 @@ function init() {
     event.target.value = '';
   });
   bindVisibilityRefresh();
+  unsubscribeDesktopAlarm = desktopAlarm?.onTriggered(handleDesktopAlarmTriggered) || null;
+  window.addEventListener('beforeunload', () => unsubscribeDesktopAlarm?.(), { once: true });
   renderFromState();
   startCountdownTicker(handleTimeTick);
 }

@@ -14,6 +14,11 @@ desktop.ini
 *.tmp
 *.bak
 
+# Windows Desktop Preview 建置產物
+node_modules/
+release/
+dist/
+
 # 本機環境設定
 .env
 .env.*

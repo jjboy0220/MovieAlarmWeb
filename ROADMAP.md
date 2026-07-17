@@ -3,7 +3,7 @@
 - 專案名稱：Movie Schedule Alarm
 - 目前版本：V1.0 開發中
 - 專案位置：`D:\MovieAlarmWeb`
-- 技術：HTML、CSS、Vanilla JavaScript、SheetJS
+- 技術：HTML、CSS、Vanilla JavaScript、SheetJS、Electron
 - 更新日期：2026-07-17
 - 文件用途：記錄功能進度、測試狀態與後續開發順序
 
@@ -20,7 +20,7 @@
 
 ## 目前進度說明
 
-Commit 1 至 Commit 5 與 UI 主題功能已完成實際人工測試，並整合為單一 V1.0 核心功能基準 Commit。後續工作從 Commit 6 的設定中心與 Commit 7 的正式發佈準備開始。
+Commit 1 至 Commit 5、UI 主題功能與 Windows Desktop Preview 2 已完成實際人工測試。設定中心仍維持 🧪，Windows 系統主音量雙向同步與正式發佈信任項目延後處理。
 
 ## ✅ Commit 1：Core Data Engine
 
@@ -145,6 +145,29 @@ Commit 1 至 Commit 5 與 UI 主題功能已完成實際人工測試，並整合
 - 全站仍只有一個 Ticker
 - Console 無錯誤
 
+## ✅ Windows Desktop Preview 2
+
+- ✅ 使用 Electron 封裝既有 HTML、CSS 與 Vanilla JavaScript 網站。
+- ✅ 建立 Windows x64 Portable 與 NSIS Installer。
+- ✅ SheetJS `xlsx 0.18.5` 完全本機化，斷網仍可匯入 Excel。
+- ✅ Electron Main Process 使用單次計時器安排正式背景警報。
+- ✅ 視窗最小化或被一般視窗覆蓋時，到點會自動還原、置頂及聚焦。
+- ✅ 使用工作列閃爍提供額外提醒，停止警報後取消閃爍及強制置頂。
+- ✅ Preload 只暴露固定且受限制的 Desktop Alarm IPC。
+- ✅ Windows 睡眠恢復及解除鎖定後，以實際時間重新檢查目前排程。
+- ✅ `assets/alarm.wav` 與離線 SheetJS 一併封裝於應用程式。
+- ✅ 同一開播時間的多場場次只觸發一次，關閉程式後不留下 Electron 程序。
+
+已以 `1.0.0-preview.2` Portable EXE 完成啟動、離線 Excel 匯入、最小化背景警報、Modal、音效、停止警報及程序結束人工驗收。建置產物由 `release/` 保存於本機且不加入 Git。
+
+### ⏳ Desktop 延後項目
+
+- ⏳ Windows 系統主音量雙向同步；目前桌面版程式音量固定為 100%，實際響度由 Windows 主音量與應用程式音量混音器控制。
+- ⏳ 正式 Windows `icon.ico`。
+- ⏳ 正式程式碼簽章憑證與簽署流程。
+- ⏳ SmartScreen 發布者信任與正式發佈聲譽。
+- ⏳ Electron 主版本安全升級；需另開獨立工作並完成相容性與回歸測試。
+
 ## 下一階段
 
 ## 🧪 Commit 6：Settings Center
@@ -206,7 +229,6 @@ Commit 1 至 Commit 5 與 UI 主題功能已完成實際人工測試，並整合
 - ⛔ TMDB API
 - ⛔ 自動抓取中文片名
 - ⛔ 電影海報
-- ⛔ Electron 桌面版
 - ⛔ Windows 系統音量強制最大
 - ⛔ SQLite
 - ⛔ Node.js
