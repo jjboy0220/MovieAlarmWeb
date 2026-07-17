@@ -3,12 +3,14 @@ let sharedAlarmChannel = null;
 
 // 將瀏覽器拒絕播放的情況轉為可直接顯示的繁體中文提示。
 function getAudioErrorMessage(error) {
+  if (globalThis.desktopAlarm) return '警報音效播放失敗，但場次已到點';
   if (error?.name === 'NotAllowedError') return '瀏覽器尚未允許播放聲音，請再次點選鬧鐘切換按鈕';
   return '警報音效無法播放，請檢查 assets/alarm.wav';
 }
 
 // 取得設定中的安全音量值，確保 HTMLAudioElement 只接收 0 至 1 的數字。
 function getAlarmVolume(settings) {
+  if (globalThis.desktopAlarm) return 1;
   const volume = Number(settings?.alarmVolume);
   return Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 1;
 }
