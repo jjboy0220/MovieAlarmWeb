@@ -16,16 +16,19 @@ import { applyDcpTitlesToSessions } from './dcpTitleMap.js';
 import { readDcpTitleWorkbook } from './dcpTitleReader.js';
 import { clearDcpTitleData, loadDcpTitleData, saveDcpTitleData } from './dcpTitleStorage.js';
 import { getOperationalDateKey, getOperationalSessions, getScheduleCoverageState } from './scheduleCoverage.js';
+import { loadScheduleSnapshot, saveScheduleSnapshot } from './scheduleStorage.js';
 
 const alarmChannel = createAlarmChannel();
 const desktopAlarm = globalThis.desktopAlarm || null;
 const desktopStartup = globalThis.desktopStartup || null;
 const desktopScheduleReminder = globalThis.desktopScheduleReminder || null;
+const desktopWindow = globalThis.desktopWindow || null;
 const DAILY_REMINDER_STORAGE_KEY = 'movieScheduleAlarm.dailyReminder.v1';
 const restoredDcpTitleData = loadDcpTitleData();
 let desktopAlarmScheduleSignature = '';
 let unsubscribeDesktopAlarm = null;
 let unsubscribeDesktopScheduleReminder = null;
+let desktopMonitoringSignature = '';
 
 // 單一應用程式狀態，所有清單、警報、搜尋、篩選、Next Movie 與偵錯資訊都由此處驅動。
 const state = {
@@ -137,6 +140,17 @@ const dailyReminderTimer = createDailyReminderTimer(() => {
 function applyDesktopAlarmDebug(debugInfo) {
   if (!debugInfo || typeof debugInfo !== 'object') return;
   state.desktopAlarmDebug = { ...state.desktopAlarmDebug, ...debugInfo };
+}
+
+// 將集中 state 的狀態計數同步給 Main Process，僅供關閉保護，不傳送完整場次。
+function syncDesktopMonitoringState() {
+  if (!desktopWindow) return;
+  const waitingCount = state.sessions.filter(session => session.status === 'waiting').length;
+  const playingCount = state.sessions.filter(session => session.status === 'playing').length;
+  const signature = `${waitingCount}|${playingCount}`;
+  if (signature === desktopMonitoringSignature) return;
+  desktopMonitoringSignature = signature;
+  void desktopWindow.updateMonitoringState({ waitingCount, playingCount }).catch(() => {});
 }
 
 // 儲存當日提醒日期與稍後提醒時間，不保存 Excel 或任何場次內容。
@@ -592,6 +606,7 @@ function handleTimeTick(now = new Date(), resumedFromBackground = false) {
   state.pageWasHidden = false;
   syncAlarmRuntimeState();
   state.sessions = updateSessionStatuses(state.sessions, now);
+  syncDesktopMonitoringState();
   applyFilters(now);
   updateActiveAlarmNotice();
   void checkScheduleCoverageReminder(now);
@@ -673,6 +688,12 @@ function applyImportedSessions({ sessions, sourceType, sourceFileName, sourceLab
   state.importedFileName = sourceFileName;
   state.importedAt = importedAt;
   state.scheduleSourceType = sourceType;
+  saveScheduleSnapshot({
+    sessions: state.sessions,
+    importedFileName: state.importedFileName,
+    importedAt: state.importedAt,
+    scheduleSourceType: state.scheduleSourceType
+  });
   state.lastTickerUpdatedAt = importedAt;
   state.pdfImportDebug = sourceType === 'pdf' ? {
     pdfFileName: sourceFileName,
@@ -708,6 +729,25 @@ function applyImportedSessions({ sessions, sourceType, sourceFileName, sourceLab
     scheduleDailyReminder(SNOOZE_DAILY_REMINDER_DELAY_MS);
   }
   updateDebugPanelFromState(new Date());
+  syncDesktopMonitoringState();
+}
+
+// 啟動時將上次成功匯入的標準化場次恢復到唯一 state.sessions，並立即重建畫面與排程。
+function restoreStoredSchedule(now = new Date()) {
+  const restored = loadScheduleSnapshot();
+  if (!restored) return;
+  state.sessions = sortSessionsByStart(updateSessionStatuses(
+    applyDcpTitlesToSessions(restored.sessions, state.dcpTitleMap),
+    now
+  ));
+  state.importedFileName = restored.importedFileName;
+  state.importedAt = restored.importedAt;
+  state.scheduleSourceType = restored.scheduleSourceType;
+  state.lastTickerUpdatedAt = now;
+  state.dateFilter = populateDateFilterOptions(state.sessions, 'AUTO');
+  updateDcpSessionDebug();
+  updateFileStatus(`已恢復上次場次表：${state.importedFileName || '本機場次資料'}`);
+  syncDesktopMonitoringState();
 }
 
 // 在整份週場次最後一場散場後只提醒一次；沿用既有 Modal 與原生通知，不建立第二個 interval。
@@ -775,6 +815,7 @@ function bindVisibilityRefresh() {
 function init() {
   document.title = `${APP_NAME} V${VERSION}`;
   updateSettings({}, false);
+  restoreStoredSchedule();
   if (desktopAlarm) alarmChannel.enableAlarm(state.settings);
   syncAlarmRuntimeState();
   bindThemeToggle(() => {

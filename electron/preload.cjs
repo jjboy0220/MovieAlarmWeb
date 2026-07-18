@@ -29,3 +29,8 @@ contextBridge.exposeInMainWorld('desktopScheduleReminder', Object.freeze({
     return () => ipcRenderer.removeListener('desktop-schedule-reminder:show', listener);
   }
 }));
+
+// 僅允許 Renderer 傳送等待中／播放中數量，供關閉監控確認使用。
+contextBridge.exposeInMainWorld('desktopWindow', Object.freeze({
+  updateMonitoringState: summary => ipcRenderer.invoke('desktop-window:update-monitoring', summary)
+}));

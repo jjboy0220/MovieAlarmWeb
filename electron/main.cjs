@@ -1,5 +1,5 @@
 const path = require('node:path');
-const { app, BrowserWindow, Menu, Notification, ipcMain, powerMonitor, screen } = require('electron');
+const { app, BrowserWindow, Menu, Notification, Tray, dialog, ipcMain, powerMonitor, screen } = require('electron');
 const { createAlarmCoordinator } = require('./alarmCoordinator.cjs');
 
 const WINDOWS_APP_USER_MODEL_ID = 'com.moviealarm.schedule';
@@ -8,6 +8,46 @@ let mainWindow = null;
 let alarmCoordinator = null;
 let pendingTriggeredPayload = null;
 let activeScheduleNotification = null;
+let tray = null;
+let isQuitting = false;
+let closePromptOpen = false;
+let monitoringSummary = { waitingCount: 0, playingCount: 0 };
+
+// 顯示關閉監控確認；只有使用者明確選擇「是」才完整結束背景程序。
+async function requestApplicationQuit() {
+  if (closePromptOpen) return;
+  const activeCount = monitoringSummary.waitingCount + monitoringSummary.playingCount;
+  if (activeCount > 0 && mainWindow && !mainWindow.isDestroyed()) {
+    closePromptOpen = true;
+    const result = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      title: '關閉監控軟體',
+      message: '目前仍有尚未結束的場次，是否要關閉監控軟體？',
+      detail: `等待中 ${monitoringSummary.waitingCount} 場，播放中 ${monitoringSummary.playingCount} 場。關閉後將不再提供背景警報。`,
+      buttons: ['否', '是'],
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true
+    });
+    closePromptOpen = false;
+    if (result.response !== 1) return;
+  }
+  isQuitting = true;
+  app.quit();
+}
+
+// 建立唯一 Windows 系統匣圖示與受限操作選單。
+function createTray() {
+  if (tray) return;
+  tray = new Tray(path.join(__dirname, '..', 'assets', 'app-icon.png'));
+  tray.setToolTip('Movie Schedule Alarm');
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: '開啟 Movie Schedule Alarm', click: focusExistingMainWindow },
+    { type: 'separator' },
+    { label: '結束程式', click: () => void requestApplicationQuit() }
+  ]));
+  tray.on('double-click', focusExistingMainWindow);
+}
 
 // 將既有主視窗還原、顯示並移至最上方，供重複啟動時沿用單一執行個體。
 function focusExistingMainWindow() {
@@ -126,6 +166,18 @@ function bindDesktopScheduleReminderIpc() {
   });
 }
 
+// 只接收關閉保護所需的計數摘要，不在 Main Process 建立第二份場次資料。
+function bindDesktopWindowIpc() {
+  ipcMain.handle('desktop-window:update-monitoring', (event, summary = {}) => {
+    if (!isTrustedSender(event)) throw new Error('拒絕未授權的監控摘要來源');
+    monitoringSummary = {
+      waitingCount: Number.isInteger(summary.waitingCount) && summary.waitingCount >= 0 ? summary.waitingCount : 0,
+      playingCount: Number.isInteger(summary.playingCount) && summary.playingCount >= 0 ? summary.playingCount : 0
+    };
+    return monitoringSummary;
+  });
+}
+
 // 建立唯一桌面視窗，並以安全的相對路徑載入既有網站入口。
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -156,7 +208,20 @@ function createMainWindow() {
   // 視窗內容完成初次繪製後才顯示，降低啟動時的白色閃爍。
   mainWindow.once('ready-to-show', () => {
     mainWindow?.center();
-    mainWindow?.show();
+    const openedAtLogin = app.isPackaged && Boolean(app.getLoginItemSettings().wasOpenedAtLogin);
+    if (!openedAtLogin) mainWindow?.show();
+  });
+
+  // 最小化時隱藏到系統匣，背景排程與警報程序持續運作。
+  mainWindow.on('minimize', event => {
+    event.preventDefault();
+    mainWindow?.hide();
+  });
+
+  mainWindow.on('close', event => {
+    if (isQuitting) return;
+    event.preventDefault();
+    void requestApplicationQuit();
   });
 
   // 禁止網頁建立新視窗或將外部頁面交由桌面殼層開啟。
@@ -239,8 +304,10 @@ if (!hasSingleInstanceLock) {
     bindDesktopAlarmIpc();
     bindDesktopStartupIpc();
     bindDesktopScheduleReminderIpc();
+    bindDesktopWindowIpc();
     powerMonitor.on('resume', () => alarmCoordinator.checkAfterResume());
     powerMonitor.on('unlock-screen', () => alarmCoordinator.checkAfterResume());
+    createTray();
     createMainWindow();
 
     // macOS 重新啟用應用程式且沒有視窗時，沿用同一建立流程。
@@ -252,5 +319,5 @@ if (!hasSingleInstanceLock) {
 
 // Windows 關閉全部視窗後完整結束 Electron 程序，不保留背景程序。
 app.on('window-all-closed', () => {
-  app.quit();
+  if (isQuitting) app.quit();
 });

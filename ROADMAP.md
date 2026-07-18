@@ -175,6 +175,8 @@ Commit 1 至 Commit 5、UI 主題功能、Windows Desktop Preview 2 與 Preview 
 已以 `1.0.0-preview.3` Portable 與 Setup 完成啟動、離線 Excel、今日場次提醒、登入啟動設定、開始功能表、工作列、背景警報及程序結束人工驗收。建置產物維持於忽略的 `release/`，不加入 Git。
 
 - ✅ 正式 Windows `icon.ico`、應用程式視窗圖示與固定作者 metadata 已套用至 Preview 4 Portable 及 Setup。
+- ✅ Windows 系統匣背景常駐、最小化隱藏、雙擊還原及結束監控確認已完成人工驗收。
+- ✅ 標準化場次週期可在本機保存並於啟動時安全恢復，最後一場結束後提醒匯入下一週資料。
 
 ### ⏳ Desktop 延後項目
 

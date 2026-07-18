@@ -89,6 +89,10 @@ Windows Desktop Preview 另由 Electron Main Process 依完整時間戳安排下
 
 ## Windows Desktop Preview
 
+Desktop 版本支援 Windows 系統匣背景監控。最小化視窗後會隱藏至通知區域，雙擊圖示可還原；若仍有等待中或播放中場次，結束程式前會顯示確認，避免意外停止背景警報。
+
+成功匯入 Excel 或 PDF 後，程式只在本機保存解析後的標準化場次與來源摘要，不保存原始檔案。下次啟動會恢復最新週期、以實際時間重算狀態並安排尚未開播的警報；整週最後一場結束後會提醒匯入下一週場次表。
+
 Windows Desktop Preview 使用 Electron 封裝既有 HTML、CSS 與 Vanilla JavaScript，不重寫網站本體。只有建置電腦需要 Node.js 與 npm；一般使用者只需執行建置後的 EXE，不需要安裝 Node.js、npm、Python、VS Code 或 Live Server。
 
 開發與建置指令：
