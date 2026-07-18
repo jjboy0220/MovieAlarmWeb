@@ -25,6 +25,9 @@ body.light .status-badge.invalid { border-color: #fca5a5; background: #fee2e2; c
 .format-badge.fourdx { border-color: var(--badge-fourdx-border); background: var(--badge-fourdx-bg); color: var(--badge-fourdx-ink); }
 .format-badge.three-d { border-color: var(--badge-three-d-border); background: var(--badge-three-d-bg); color: var(--badge-three-d-ink); }
 .format-badge.three-d-dig { border-color: var(--badge-three-d-dig-border); background: var(--badge-three-d-dig-bg); color: var(--badge-three-d-dig-ink); }
+.format-badge.live { border-color: var(--badge-live-border); background: var(--badge-live-bg); color: var(--badge-live-ink); }
+.format-badge.special { border-color: var(--badge-special-border); background: var(--badge-special-bg); color: var(--badge-special-ink); }
+.format-badge.dig-special { border-color: var(--badge-dig-special-border); background: var(--badge-dig-special-bg); color: var(--badge-dig-special-ink); }
 @media (hover: hover) {
   .language-badge.chi:hover { background: var(--badge-language-chi-hover); }
   .language-badge.eng:hover { background: var(--badge-language-eng-hover); }
@@ -38,4 +41,7 @@ body.light .status-badge.invalid { border-color: #fca5a5; background: #fee2e2; c
   .format-badge.fourdx:hover { background: var(--badge-fourdx-hover); }
   .format-badge.three-d:hover { background: var(--badge-three-d-hover); }
   .format-badge.three-d-dig:hover { background: var(--badge-three-d-dig-hover); }
+  .format-badge.live:hover { background: var(--badge-live-hover); }
+  .format-badge.special:hover { background: var(--badge-special-hover); }
+  .format-badge.dig-special:hover { background: var(--badge-dig-special-hover); }
 }

@@ -1,7 +1,7 @@
 {
   "name": "movie-schedule-alarm",
   "productName": "Movie Schedule Alarm",
-  "version": "1.0.0-preview.3",
+  "version": "1.0.0-preview.4",
   "description": "Movie Schedule Alarm Windows Desktop Preview",
   "main": "electron/main.cjs",
   "private": true,
@@ -13,6 +13,7 @@
   "devDependencies": {
     "electron": "^37.2.3",
     "electron-builder": "^26.0.12",
+    "pdfjs-dist": "5.4.296",
     "xlsx": "0.18.5"
   },
   "build": {
@@ -30,6 +31,7 @@
       "js/**/*",
       "assets/**/*",
       "vendor/xlsx/**/*",
+      "vendor/pdfjs/**/*",
       "package.json"
     ],
     "win": {
@@ -49,7 +51,7 @@
       ]
     },
     "portable": {
-      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.3-Portable.${ext}"
+      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.4-Portable.${ext}"
     },
     "nsis": {
       "oneClick": true,
@@ -58,7 +60,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Movie Schedule Alarm",
       "runAfterFinish": true,
-      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.3-Setup.${ext}"
+      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.4-Setup.${ext}"
     }
   }
 }

@@ -21,10 +21,10 @@ contextBridge.exposeInMainWorld('desktopStartup', Object.freeze({
 
 // 僅暴露今日場次原生通知與點擊回呼，不提供 Notification 或視窗控制權。
 contextBridge.exposeInMainWorld('desktopScheduleReminder', Object.freeze({
-  notify: () => ipcRenderer.invoke('desktop-schedule-reminder:notify'),
+  notify: options => ipcRenderer.invoke('desktop-schedule-reminder:notify', options),
   onShowRequested: callback => {
     if (typeof callback !== 'function') return () => {};
-    const listener = () => callback();
+    const listener = (_event, payload) => callback(payload);
     ipcRenderer.on('desktop-schedule-reminder:show', listener);
     return () => ipcRenderer.removeListener('desktop-schedule-reminder:show', listener);
   }

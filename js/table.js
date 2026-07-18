@@ -13,12 +13,14 @@ export function createEmptyTable() {
   document.querySelector('#scheduleBody').replaceChildren();
 }
 
-// 依已排序的可見場次建立日期群組，避免顯示沒有場次的日期標題。
+// 在已選定的營運日內依真實日曆日期分組，讓跨午夜打烊場顯示隔日日期標題。
 function groupSessionsByDate(sessions) {
   return sessions.reduce((groups, session) => {
+    const date = session.date;
+    const weekday = session.weekday;
     const latestGroup = groups[groups.length - 1];
-    if (!latestGroup || latestGroup.date !== session.date) {
-      groups.push({ date: session.date, weekday: session.weekday, sessions: [session] });
+    if (!latestGroup || latestGroup.date !== date) {
+      groups.push({ date, weekday, sessions: [session] });
     } else {
       latestGroup.sessions.push(session);
     }
@@ -51,7 +53,7 @@ function getRemainingText(session) {
 // 將單筆可見場次轉為表格資料列；狀態與剩餘時間只讀取集中 state 的衍生欄位。
 function renderSessionRow(session) {
   const status = statusPresentation[session.status] || statusPresentation.invalid;
-  return `<tr><td><span class="status-badge ${status.className}" data-status="${escapeHtml(session.status)}">${status.label}</span></td><td>${escapeHtml(session.start)}</td><td>${escapeHtml(session.finish)}</td><td>${renderHallBadge(session.hall)}</td><td>${renderFormatBadges(session) || '—'}</td><td>${renderLanguageBadge(session.language)}</td><td class="movie-cell">${escapeHtml(session.title)}</td><td class="remaining-time">${escapeHtml(getRemainingText(session))}</td></tr>`;
+  return `<tr><td><span class="status-badge ${status.className}" data-status="${escapeHtml(session.status)}">${status.label}</span></td><td>${escapeHtml(session.start)}</td><td>${escapeHtml(session.finish)}</td><td>${renderHallBadge(session.hall)}</td><td>${renderFormatBadges(session) || '—'}</td><td>${renderLanguageBadge(session.language)}</td><td class="movie-cell" title="${escapeHtml(session.originalTitle || session.title)}">${escapeHtml(session.displayTitle || session.title)}</td><td class="remaining-time">${escapeHtml(getRemainingText(session))}</td></tr>`;
 }
 
 // 將日期標題及其所屬場次轉為連續表格列，提供清楚的日期視覺分隔。

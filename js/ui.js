@@ -8,7 +8,17 @@ const $ = selector => document.querySelector(selector);
 
 // 以群組開播時間與場次識別碼建立穩定鍵值，避免每秒重建相同的場次清單。
 function getSessionGroupKey(group) {
-  return `${group.startDateTime}|${group.sessions.map(session => session.id || `${session.hall}-${session.title}`).join('|')}`;
+  return `${group.startDateTime}|${group.sessions.map(session => `${session.id || session.hall}-${session.displayTitle || session.title}`).join('|')}`;
+}
+
+// 將完整下一場卡片清單固定移到共用開演時間上方，且只沿用既有 DOM 節點。
+function ensureNextSessionListPlacement() {
+  const sessionList = $('#nextSessionList');
+  const nextTime = $('.next-time');
+  if (sessionList.nextElementSibling !== nextTime) {
+    $('.next-hero').insertBefore(sessionList, nextTime);
+  }
+  return sessionList;
 }
 
 // 將單一同時開播場次渲染為 Next Movie 資訊卡，保留影廳、純片名、語言與格式 Badge。
@@ -17,7 +27,7 @@ function renderNextSession(session) {
   const formatBadges = renderFormatBadges(session);
   const metadataBadges = [languageBadge, formatBadges].filter(Boolean).join('');
 
-  return `<article class="next-session-item"><div class="next-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="next-session-title">${escapeHtml(session.title)}</strong><div class="next-session-badges">${metadataBadges || '<span class="next-session-unlabeled">未標示語言或格式</span>'}</div></article>`;
+  return `<article class="next-session-item"><div class="next-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="next-session-title" title="${escapeHtml(session.originalTitle || session.title)}">${escapeHtml(session.displayTitle || session.title)}</strong><div class="next-session-badges">${metadataBadges || '<span class="next-session-unlabeled">未標示語言或格式</span>'}</div></article>`;
 }
 
 // 將單一警報場次渲染為 Modal 內的資訊卡，電影名稱只顯示純 title。
@@ -26,17 +36,17 @@ function renderAlarmSession(session) {
   const formatBadges = renderFormatBadges(session);
   const metadataBadges = [languageBadge, formatBadges].filter(Boolean).join('');
 
-  return `<article class="alarm-session-item"><div class="alarm-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="alarm-session-title">${escapeHtml(session.title)}</strong><div class="alarm-session-badges">${metadataBadges || '<span class="alarm-session-unlabeled">未標示語言或格式</span>'}</div></article>`;
+  return `<article class="alarm-session-item"><div class="alarm-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="alarm-session-title" title="${escapeHtml(session.originalTitle || session.title)}">${escapeHtml(session.displayTitle || session.title)}</strong><div class="alarm-session-badges">${metadataBadges || '<span class="alarm-session-unlabeled">未標示語言或格式</span>'}</div></article>`;
 }
 
 // 渲染同一開播時間的所有場次；日期、時間與倒數由卡片上方共用區塊顯示一次。
 function renderNextSessionList(group) {
-  $('#nextSessionList').innerHTML = group.sessions.map(renderNextSession).join('');
+  ensureNextSessionListPlacement().innerHTML = group.sessions.map(renderNextSession).join('');
 }
 
 // 呈現 Next Movie 的非 upcoming 安全訊息，避免卡片出現空白、undefined 或混合狀態。
 function renderNextSessionPlaceholder(message) {
-  $('#nextSessionList').innerHTML = `<p class="next-session-empty">${escapeHtml(message)}</p>`;
+  ensureNextSessionListPlacement().innerHTML = `<p class="next-session-empty">${escapeHtml(message)}</p>`;
 }
 
 // 將五種 Next Movie 呈現狀態轉為互斥的徽章文字與說明訊息。
@@ -171,7 +181,22 @@ function getDebugEntries(debugInfo) {
     ['目前系統時區', debugInfo.timezone],
     ['匯入檔案名稱', debugInfo.importedFileName],
     ['匯入時間', debugInfo.importedAt],
+    ['場次來源類型', debugInfo.scheduleSourceType],
+    ['PDF 檔案名稱', debugInfo.pdfFileName],
+    ['PDF 頁數', debugInfo.pdfPageCount],
+    ['PDF 文字項目數', debugInfo.pdfTextItemCount],
+    ['PDF 日期區段數', debugInfo.pdfDetectedDateSections],
+    ['PDF 檔名週期修復日期數', debugInfo.pdfRepairedDateSections],
+    ['PDF 解析成功列數', debugInfo.pdfParsedRowCount],
+    ['PDF 略過列數', debugInfo.pdfSkippedRowCount],
+    ['PDF 無效列數', debugInfo.pdfInvalidRowCount],
+    ['PDF 疑似截斷片名數', debugInfo.pdfTruncatedTitleCount],
+    ['PDF 解析錯誤', debugInfo.pdfParseErrors],
     ['解析成功場次', debugInfo.totalSessions],
+    ['目前營運日', debugInfo.operationalDateKey],
+    ['場次列表日期選擇', debugInfo.selectedOperationalDate],
+    ['目前營運日顯示場次數', debugInfo.operationalSessionCount],
+    ['場次涵蓋到期提醒鍵值', debugInfo.coverageReminderKey],
     ['有效 startDateTime 場次', debugInfo.validDateTimeSessions],
     ['無效 startDateTime 場次', debugInfo.invalidDateTimeSessions],
     ['無效 finishDateTime 場次', debugInfo.invalidFinishDateTimeSessions],
@@ -196,6 +221,18 @@ function getDebugEntries(debugInfo) {
     ['最後今日提醒檢查時間', debugInfo.lastDailyReminderCheckAt],
     ['今日原生通知已顯示', debugInfo.dailyNotificationShown],
     ['今日原生通知錯誤', debugInfo.dailyNotificationError],
+    ['DCP 片名對照已載入', debugInfo.dcpTitleMapLoaded],
+    ['DCP 來源檔案', debugInfo.dcpTitleSourceFile],
+    ['DCP 來源工作表', debugInfo.dcpTitleSourceSheet],
+    ['DCP 匯入時間', debugInfo.dcpTitleImportedAt],
+    ['DCP 來源資料列', debugInfo.dcpTitleSourceRows],
+    ['DCP 有效資料列', debugInfo.dcpTitleValidRows],
+    ['DCP 唯一片名數', debugInfo.dcpTitleUniqueCount],
+    ['DCP 重複資料列', debugInfo.dcpTitleDuplicateCount],
+    ['DCP 衝突片名數', debugInfo.dcpTitleConflictCount],
+    ['中文片名匹配場次', debugInfo.matchedSessionCount],
+    ['中文片名未匹配場次', debugInfo.unmatchedSessionCount],
+    ['前 10 個未匹配英文片名', debugInfo.unmatchedSessionTitles],
     ['警報音效已啟用', debugInfo.alarmEnabled],
     ['警報切換按鈕文字', debugInfo.alarmToggleLabel],
     ['警報狀態文字', debugInfo.alarmStatusText],
@@ -247,9 +284,11 @@ function getDebugEntries(debugInfo) {
 }
 
 // 顯示今日場次匯入提醒並將鍵盤焦點移至主要上傳按鈕。
-export function showDailyImportReminder() {
+export function showDailyImportReminder({ title = '尚未匯入今日場次表', message = '請上傳當日場次表，以啟用場次監控、倒數與鬧鐘提醒。' } = {}) {
+  $('#dailyImportReminderTitle').textContent = title;
+  $('#dailyImportReminderMessage').textContent = message;
   $('#dailyImportReminderModal').hidden = false;
-  $('#uploadTodayScheduleButton').focus();
+  $('#uploadTodayExcelScheduleButton').focus();
 }
 
 // 關閉今日場次匯入提醒，不影響程式與既有場次資料。
@@ -257,9 +296,10 @@ export function hideDailyImportReminder() {
   $('#dailyImportReminderModal').hidden = true;
 }
 
-// 綁定提醒 Modal 的上傳及稍後提醒按鈕，不建立第二個檔案輸入元件。
-export function bindDailyImportReminder({ onUpload, onSnooze }) {
-  $('#uploadTodayScheduleButton').addEventListener('click', onUpload);
+// 綁定提醒 Modal 的 Excel、PDF 與稍後提醒按鈕，沿用頁首既有的兩個檔案輸入元件。
+export function bindDailyImportReminder({ onUploadExcel, onUploadPdf, onSnooze }) {
+  $('#uploadTodayExcelScheduleButton').addEventListener('click', onUploadExcel);
+  $('#uploadTodayPdfScheduleButton').addEventListener('click', onUploadPdf);
   $('#snoozeTodayScheduleButton').addEventListener('click', onSnooze);
 }
 
@@ -383,6 +423,65 @@ export function bindSettingsControls({ onChange, onStartupChange }) {
   $('#settingsDebugPanel').addEventListener('change', event => onChange({ debugPanelOpen: event.target.checked }));
   $('#settingsDailyImportReminder').addEventListener('change', event => onChange({ dailyImportReminderEnabled: event.target.checked }));
   $('#settingsStartupEnabled').addEventListener('change', event => onStartupChange(event.target.checked));
+}
+
+// 將 DCP 匯入時間格式化為本機 YYYY/MM/DD HH:mm，無效值安全省略。
+function formatDcpImportedAt(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const parts = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')];
+  const time = [String(date.getHours()).padStart(2, '0'), String(date.getMinutes()).padStart(2, '0')].join(':');
+  return `${parts.join('/')} ${time}`;
+}
+
+// 更新 DCP 匯入摘要；錯誤以同一非阻塞狀態區顯示，不覆蓋上一份有效對照。
+export function updateDcpTitleStatus({ uniqueTitles = 0, sourceFileName = '', sourceSheetName = '', importedAt = '', conflicts = 0, unmatchedSessions = 0, loading = '', error = '' } = {}) {
+  const status = $('#dcpTitleStatus');
+  if (loading) {
+    status.textContent = loading;
+    return;
+  }
+  if (error) {
+    status.textContent = error;
+    return;
+  }
+  if (uniqueTitles <= 0) {
+    status.textContent = '尚未匯入 DCP 中文片名資料';
+    return;
+  }
+  status.textContent = [
+    '已更新 DCP 中文片名資料',
+    `來源：${sourceFileName || '—'}`,
+    `工作表：${sourceSheetName || '—'}`,
+    `更新時間：${formatDcpImportedAt(importedAt) || '—'}`,
+    `片名對照：${uniqueTitles} 組`,
+    `衝突：${Number(conflicts) || 0} 組`,
+    `未匹配場次：${Number(unmatchedSessions) || 0} 部`
+  ].join('\n');
+}
+
+// 綁定 DCP 檔案匯入及內嵌清除確認，不建立第二個檔案輸入或使用 alert。
+export function bindDcpTitleControls({ onImport, onClear }) {
+  const input = $('#dcpTitleFileInput');
+  const confirmation = $('#clearDcpConfirm');
+  $('#importDcpTitleButton').addEventListener('click', () => input.click());
+  input.addEventListener('change', async event => {
+    const file = event.target.files[0];
+    if (file) await onImport(file);
+    event.target.value = '';
+  });
+  $('#clearDcpTitleButton').addEventListener('click', () => {
+    confirmation.hidden = false;
+    $('#confirmClearDcpButton').focus();
+  });
+  $('#confirmClearDcpButton').addEventListener('click', () => {
+    confirmation.hidden = true;
+    onClear();
+  });
+  $('#cancelClearDcpButton').addEventListener('click', () => {
+    confirmation.hidden = true;
+    $('#clearDcpTitleButton').focus();
+  });
 }
 
 // 顯示或隱藏場次表格下方的空狀態與錯誤提示。

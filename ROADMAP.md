@@ -4,7 +4,7 @@
 - 目前版本：V1.0 開發中
 - 專案位置：`D:\MovieAlarmWeb`
 - 技術：HTML、CSS、Vanilla JavaScript、SheetJS、Electron
-- 更新日期：2026-07-17
+- 更新日期：2026-07-18
 - 文件用途：記錄功能進度、測試狀態與後續開發順序
 
 > `AGENTS.md` 定義專案應該如何開發、修改、測試與提交；`ROADMAP.md` 記錄專案目前完成到哪裡、下一步要做什麼，以及 V1.0 尚缺少哪些功能。
@@ -181,6 +181,26 @@ Commit 1 至 Commit 5、UI 主題功能、Windows Desktop Preview 2 與 Preview 
 - ⏳ 正式程式碼簽章憑證與簽署流程。
 - ⏳ SmartScreen 發布者信任與正式發佈聲譽。
 - ⏳ Electron 主版本安全升級；需另開獨立工作並完成相容性與回歸測試。
+
+## ✅ DCP 中文片名本機對照
+
+- ✅ 匯入「現有DCP」工作表的中文片名與英文片名欄位。
+- ✅ 清理預告版本尾碼並建立去重、衝突可追蹤的本機 Map。
+- ✅ Schedule、Next Movie、Alarm Modal 與搜尋同時支援中文及原始英文片名。
+- ✅ 對照資料只保存清理後的必要欄位於 localStorage，不執行 XLSM 巨集。
+- ✅ 重新匯入完整取代舊 Map，失敗保留舊資料，清除後恢復英文顯示。
+
+已使用實際 DCP 與場次資料完成重複匯入、中文片名套用及失敗保留舊資料人工驗收。
+
+## ✅ PDF 場次表匯入
+
+- ✅ 本機 PDF.js 解析 Vista Projection Schedule 文字層，不依賴 CDN、OCR 或網路服務。
+- ✅ 依文字座標與每頁表頭動態還原 Screen、Start、Finish、Status、Film Title。
+- ✅ 日期區段可跨頁延續，並支援跨午夜開始及結束日期時間。
+- ✅ Excel 與 PDF 共用集中 `state.sessions` 匯入流程，新資料完整取代舊資料。
+- ✅ DCP 中文片名、搜尋、Next Movie、Countdown 與 Alarm 沿用既有資料流。
+
+已使用實際單日與跨週期 PDF 完成 Electron 匯入、日期修復、營運日切換及場次顯示人工驗收。
 
 ## 下一階段
 

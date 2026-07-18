@@ -54,9 +54,13 @@ Launcher 會依序檢查 5500 至 5505，選擇第一個可用 Port 啟動本機
 `excelReader.js` 會自動搜尋 `Screen`、`Start`、`Finish`、`Film Title` 標題，並依實際資料位置讀取，不會硬編碼欄位索引。Parser 會：
 
 - 將數字影廳轉為 `C1` 至 `C9`，並將 `GC01`、`GC02` 正規化為 `GC1`、`GC2`。
-- 從片名括號前綴識別 DIG、TITAN、IMAX、ATMOS、4DX 與 3D 格式。
+- 從片名括號前綴識別 DIG、TITAN、IMAX、ATMOS、4DX、3D、LIVE 與 SPECIAL 格式；已知錯誤 `(CONAN SPECIAL J)` 會保守修正為 `DIG SPECIAL` 與 `JAN`。
 - 將 `C`、`E`、`J` 分別轉為 `CHI`、`ENG`、`JAN`。
 - 解析日期、跨午夜的 `startDateTime`／`finishDateTime`，並依完整開始時間排序。
+- Excel 與 PDF 可一次匯入多日或整週場次；完整資料保留於單一 `state.sessions`，場次列表與統計依電腦系統日期自動顯示目前營運日。
+- 營運日固定以 06:00 為分界：00:00–05:59 的凌晨打烊場歸入前一營運日，06:00 後歸入系統當日；實際日期時間、倒數與警報時間不會因此改變。
+- 場次列表可使用營運日期下拉選單切換整週各日，預設「自動（目前營運日）」；整份匯入資料的最後一場結束後，系統會提醒匯入後續 Excel 或 PDF 場次表。
+- 同一營運日內仍依真實日曆日期顯示分段標題；例如 7/19 00:40 歸在 7/18 營運日選項，但會置於 `2026/07/19` 日期標題下方。
 - 略過設定在 `js/config.js` 的測試片、預告與檢查片關鍵字。
 
 ## 離線電影資料原則
@@ -109,6 +113,19 @@ Windows Setup 安裝版可在設定中心開啟「開機時自動啟動」，登
 
 Desktop 啟動約 5 秒後會檢查是否已有本機今天的有效場次；若尚未匯入，會顯示匯入 Modal 與 Windows 原生通知。「稍後提醒」會以單次 Timer 在 30 分鐘後重新檢查，匯入今日場次後立即取消。此功能只保存提醒日期與稍後提醒時間，不保存 Excel 場次資料。
 
+### Preview 4 更新內容
+
+- 新增設定中心「匯入現有 DCP」，支援 XLSM、XLSX 與 XLS。
+- 動態讀取「中文片名」及「英文片名」欄位，不執行 XLSM 巨集。
+- 自動清理 DCP 預告版本、語言、日期、秒數及 SCOPE／FLAT 尾碼。
+- Schedule、Next Movie 與警報視窗以中文片名為主要顯示。
+- 搜尋同時支援清理後中文片名與原始英文片名。
+- 現有 DCP 可每週重新匯入；成功後完整取代舊對照並立即套用現有場次。
+- 新版 DCP 匯入失敗時保留上一份有效資料與目前中文片名。
+- 找不到中文片名的場次仍安全顯示原始英文。
+
+Preview 4 的免安裝版檔名為 `Movie-Schedule-Alarm-V1.0-Preview.4-Portable.exe`，NSIS 安裝程式檔名為 `Movie-Schedule-Alarm-V1.0-Preview.4-Setup.exe`。
+
 ### Preview 3 更新內容
 
 - Windows Desktop 每次啟動時鬧鐘預設開啟，使用者仍可在本次執行期間手動關閉。
@@ -135,6 +152,22 @@ Preview 2 的免安裝版檔名為 `Movie-Schedule-Alarm-V1.0-Preview.2-Portable
 ### SheetJS 離線支援
 
 Excel 匯入使用 SheetJS `xlsx 0.18.5`，瀏覽器 bundle 位於 `vendor/xlsx/xlsx.full.min.js`，Electron 與網站都以相對路徑載入，不依賴 jsDelivr 或其他外部網路資源。套件用途僅為讀取與解析 `.xlsx`、`.xls`、`.csv` 場次表；Apache License 2.0 授權文字保留於 `vendor/xlsx/LICENSE`。
+
+## PDF 場次表匯入
+
+支援 Vista Entertainment Solutions 的 Projection Schedule PDF，會從具有文字層的報表解析 Screen、Start、Finish、Status 與 Film Title，並依英文日期區段處理跨頁與跨午夜場次。PDF.js `5.4.296` 主程式與 Worker 已保存在 `vendor/pdfjs/`，採 Apache License 2.0 且完全離線執行。
+
+PDF 必須包含可擷取的文字內容；不支援掃描圖片型 PDF，也不使用 OCR、雲端服務或外部網站。使用者選擇的 PDF 原始檔不會保存到 localStorage、不會打包進 EXE，也不會上傳網路。
+
+若 PDF 日期標題的星期與月份文字損壞，但仍保留日與年份，程式會以檔名中的 `MMDD-MMDD` 週期進行受控修復。例如 `TC 0710-0716_...pdf` 的 `10, 2026` 會修復為 `2026/07/10`；殘存日期、年份與檔名週期無法唯一對應時不會猜測日期。
+
+## 現有 DCP 中文片名對照
+
+設定中心可匯入 `現有DCP.XLSM`、`.xlsx` 或 `.xls`，程式只使用「現有DCP」工作表中動態偵測到的「中文片名」與「英文片名」欄位建立本機對照。XLSM 僅以 SheetJS 讀取儲存格純文字，不執行 VBA 巨集、外部連結或嵌入內容。
+
+英文與中文片名會移除片尾預告版本、語言、日期、秒數及 SCOPE／FLAT 附註；找不到中文對照時仍顯示原始英文。清理後的必要英文／中文 Map 與匯入統計保存在 localStorage，重新開啟後可自動恢復，也可從設定中心以非阻塞確認流程清除。此功能完全離線，不使用網路、TMDB、外部 API 或人工翻譯。
+
+「匯入現有 DCP」可每週重複使用。新版檔案成功匯入後會以新資料完整取代舊對照，不累加不同週資料，並立即重新套用目前已載入的場次，不需重新匯入當日場次表；若新版匯入失敗，程式會保留上一份有效 Map 與目前中文片名。
 
 ### 桌面背景警報限制
 

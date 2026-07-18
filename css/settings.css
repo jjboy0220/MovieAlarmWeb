@@ -27,6 +27,14 @@ body.settings-open { overflow: hidden; }
 .settings-desktop-group { display: grid; gap: 10px; }
 .settings-desktop-group[hidden] { display: none; }
 .settings-inline-status { margin: -4px 0 4px; padding: 0 13px; color: var(--text-secondary); font-size: .82rem; line-height: 1.45; }
+.settings-dcp-group { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); }
+.settings-dcp-group .settings-inline-status { margin: 5px 0 0; padding: 0; white-space: pre-line; }
+.settings-dcp-actions, .settings-inline-confirm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.settings-dcp-actions button, .settings-inline-confirm button { min-height: 38px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--button-surface); color: var(--text-primary); cursor: pointer; font: inherit; font-size: .84rem; font-weight: 700; }
+.settings-dcp-actions button:hover, .settings-inline-confirm button:hover { border-color: var(--primary); color: var(--primary); }
+.settings-dcp-actions button:focus-visible, .settings-inline-confirm button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.settings-inline-confirm { padding: 10px; border-radius: 8px; background: var(--surface-blue); color: var(--text-primary); font-size: .84rem; }
+.settings-inline-confirm[hidden] { display: none; }
 .schedule-reminder-modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: clamp(16px, 4vw, 40px); }
 .schedule-reminder-modal[hidden] { display: none; }
 .schedule-reminder-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .58); }

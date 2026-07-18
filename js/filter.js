@@ -1,5 +1,5 @@
 import { FORMATS } from './config.js';
-import { getSessionFormats } from './utils.js';
+import { formatCompactChineseDate, getSessionFormats, getTraditionalChineseWeekday, normalizeText } from './utils.js';
 
 const FILTER_DEFINITIONS = [
   { elementId: 'hallFilter', stateKey: 'hallFilter', allLabel: '所有影廳', field: 'hall' },
@@ -15,6 +15,33 @@ const statusFilterRules = {
   PLAYING: new Set(['playing']),
   FINISHED: new Set(['finished'])
 };
+
+// 確保營運日期選單只建立一次，並放在既有影廳篩選器之前。
+function ensureDateFilter() {
+  const existing = document.querySelector('#dateFilter');
+  if (existing) return existing;
+  const select = document.createElement('select');
+  select.id = 'dateFilter';
+  select.setAttribute('aria-label', '營運日期篩選');
+  document.querySelector('#hallFilter').before(select);
+  return select;
+}
+
+// 依完整匯入資料建立營運日期選項，保留自動跟隨系統營運日的預設模式。
+export function populateDateFilterOptions(sessions, selectedDate = 'AUTO') {
+  const select = ensureDateFilter();
+  const dateKeys = [...new Set((Array.isArray(sessions) ? sessions : [])
+    .map(session => normalizeText(session?.operationalDate || session?.date))
+    .filter(Boolean))].sort();
+  const options = [new Option('自動（目前營運日）', 'AUTO')];
+  dateKeys.forEach(dateKey => options.push(new Option(
+    formatCompactChineseDate(dateKey, getTraditionalChineseWeekday(dateKey)),
+    dateKey
+  )));
+  select.replaceChildren(...options);
+  select.value = dateKeys.includes(selectedDate) ? selectedDate : 'AUTO';
+  return select.value;
+}
 
 // 將篩選值統一為去除空白的大寫文字，確保比較行為一致。
 function normalizeFilterValue(value) {
@@ -59,6 +86,9 @@ function matchesStatusFilter(session, selectedValue) {
 
 // 綁定全部篩選器；實際 state 更新由 app.js 集中負責。
 export function bindFilters(onChange) {
+  ensureDateFilter().addEventListener('change', event => {
+    onChange('dateFilter', normalizeText(event.target.value) || 'AUTO');
+  });
   FILTER_DEFINITIONS.forEach(definition => {
     const select = document.querySelector(`#${definition.elementId}`);
     select.addEventListener('change', event => {

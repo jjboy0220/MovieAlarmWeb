@@ -11,7 +11,9 @@ export function parseFilmTitle(value) {
   }
 
   const tokens = prefixMatch[1].toUpperCase().split(/\s+/).filter(Boolean);
-  const formats = [...new Set(tokens.filter(token => FORMATS.includes(token)))];
+  const detectedFormats = [...new Set(tokens.filter(token => FORMATS.includes(token)))];
+  const isKnownConanSpecialError = tokens.includes('CONAN') && tokens.includes('SPECIAL') && !tokens.includes('DIG');
+  const formats = isKnownConanSpecialError ? ['DIG', ...detectedFormats] : detectedFormats;
   const formatDisplay = formatFormatsForDisplay(formats);
   const primaryFormat = formats.includes('3D') ? '3D' : formats[0] || '';
   const languageCode = tokens.find(token => LANGUAGE_MAP[token]);

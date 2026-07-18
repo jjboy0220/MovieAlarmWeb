@@ -16,8 +16,14 @@ desktop.ini
 
 # Windows Desktop Preview 建置產物
 node_modules/
-release/
+release*/
 dist/
+
+# 本機匯入的公司 Excel 資料
+*.xls
+*.xlsx
+*.xlsm
+*.pdf
 
 # 本機環境設定
 .env

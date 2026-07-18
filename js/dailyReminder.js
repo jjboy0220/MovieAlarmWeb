@@ -1,18 +1,10 @@
 import { normalizeText, parseLocalDateTime } from './utils.js';
+import { getLocalDateKey } from './scheduleCoverage.js';
 
 export const INITIAL_DAILY_REMINDER_DELAY_MS = 5 * 1000;
 export const SNOOZE_DAILY_REMINDER_DELAY_MS = 30 * 60 * 1000;
 
 // 將目前本機日期轉為場次既有的 YYYY-MM-DD 日期鍵，不依賴檔名或匯入時間。
-function getLocalDateKey(now) {
-  const date = now instanceof Date ? now : new Date(now);
-  if (Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 // 使用既有標準化日期與有效開始時間判定是否已匯入本機今天的場次。
 export function hasTodaySchedule(sessions, now = new Date()) {
   const todayDateKey = getLocalDateKey(now);

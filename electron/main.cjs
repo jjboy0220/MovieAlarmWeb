@@ -89,7 +89,7 @@ function bindDesktopStartupIpc() {
 
 // 註冊今日場次原生通知 IPC；通知失敗只回傳 Debug 錯誤，不影響 Renderer Modal。
 function bindDesktopScheduleReminderIpc() {
-  ipcMain.handle('desktop-schedule-reminder:notify', event => {
+  ipcMain.handle('desktop-schedule-reminder:notify', (event, options = {}) => {
     if (!isTrustedSender(event)) throw new Error('拒絕未授權的今日場次提醒來源');
     focusExistingMainWindow();
     try {
@@ -97,15 +97,19 @@ function bindDesktopScheduleReminderIpc() {
         return { notificationShown: false, notificationError: '目前 Windows 環境不支援原生通知' };
       }
       activeScheduleNotification?.close();
+      const notificationBody = typeof options?.body === 'string' && options.body.length <= 160
+        ? options.body
+        : '尚未匯入今日場次表，請開啟程式並上傳當日場次。';
+      const notificationKind = options?.kind === 'coverage-exhausted' ? 'coverage-exhausted' : 'daily-missing';
       const notification = new Notification({
         title: 'Movie Schedule Alarm',
-        body: '尚未匯入今日場次表，請開啟程式並上傳當日場次。'
+        body: notificationBody
       });
       activeScheduleNotification = notification;
       notification.on('click', () => {
         focusExistingMainWindow();
         if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-          mainWindow.webContents.send('desktop-schedule-reminder:show');
+          mainWindow.webContents.send('desktop-schedule-reminder:show', { kind: notificationKind });
         }
       });
       notification.on('close', () => {
