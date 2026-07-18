@@ -17,6 +17,10 @@ desktop.ini
 # Windows Desktop Preview 建置產物
 node_modules/
 release*/
+!release/
+release/*
+!release/Movie-Schedule-Alarm-V1.0-Preview.4-Portable.exe
+!release/Movie-Schedule-Alarm-V1.0-Preview.4-Setup.exe
 dist/
 
 # 本機匯入的公司 Excel 資料
