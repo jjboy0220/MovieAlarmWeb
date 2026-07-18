@@ -174,10 +174,11 @@ Commit 1 至 Commit 5、UI 主題功能、Windows Desktop Preview 2 與 Preview 
 
 已以 `1.0.0-preview.3` Portable 與 Setup 完成啟動、離線 Excel、今日場次提醒、登入啟動設定、開始功能表、工作列、背景警報及程序結束人工驗收。建置產物維持於忽略的 `release/`，不加入 Git。
 
+- ✅ 正式 Windows `icon.ico`、應用程式視窗圖示與固定作者 metadata 已套用至 Preview 4 Portable 及 Setup。
+
 ### ⏳ Desktop 延後項目
 
 - ⏳ Windows 系統主音量雙向同步；目前桌面版程式音量固定為 100%，實際響度由 Windows 主音量與應用程式音量混音器控制。
-- ⏳ 正式 Windows `icon.ico`。
 - ⏳ 正式程式碼簽章憑證與簽署流程。
 - ⏳ SmartScreen 發布者信任與正式發佈聲譽。
 - ⏳ Electron 主版本安全升級；需另開獨立工作並完成相容性與回歸測試。

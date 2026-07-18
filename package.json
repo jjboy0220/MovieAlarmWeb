@@ -3,6 +3,10 @@
   "productName": "Movie Schedule Alarm",
   "version": "1.0.0-preview.4",
   "description": "Movie Schedule Alarm Windows Desktop Preview",
+  "author": {
+    "name": "Jim Chang",
+    "email": "jim_chang@vscinemas.com.tw"
+  },
   "main": "electron/main.cjs",
   "private": true,
   "scripts": {
@@ -35,6 +39,7 @@
       "package.json"
     ],
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "portable",

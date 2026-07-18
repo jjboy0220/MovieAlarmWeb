@@ -138,7 +138,7 @@ function createMainWindow() {
     center: true,
     autoHideMenuBar: true,
     backgroundColor: '#07111f',
-    icon: path.join(__dirname, '..', 'assets', 'logo.png'),
+    icon: path.join(__dirname, '..', 'assets', 'app-icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
