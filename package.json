@@ -1,7 +1,7 @@
 {
   "name": "movie-schedule-alarm",
   "productName": "Movie Schedule Alarm",
-  "version": "1.0.0-preview.4",
+  "version": "1.2.0",
   "description": "Movie Schedule Alarm Windows Desktop Preview",
   "author": {
     "name": "Jim Chang",
@@ -11,11 +11,12 @@
   "private": true,
   "scripts": {
     "desktop": "electron .",
+    "test:regression": "node tests/regression.mjs",
     "build:portable": "electron-builder --win portable --x64",
     "build:installer": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
-    "electron": "^37.2.3",
+    "electron": "43.1.1",
     "electron-builder": "^26.0.12",
     "pdfjs-dist": "5.4.296",
     "xlsx": "0.18.5"
@@ -56,7 +57,7 @@
       ]
     },
     "portable": {
-      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.4-Portable.${ext}"
+      "artifactName": "Movie-Schedule-Alarm-V1.2-Portable.${ext}"
     },
     "nsis": {
       "oneClick": true,
@@ -65,7 +66,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Movie Schedule Alarm",
       "runAfterFinish": true,
-      "artifactName": "Movie-Schedule-Alarm-V1.0-Preview.4-Setup.${ext}"
+      "artifactName": "Movie-Schedule-Alarm-V1.2-Setup.${ext}"
     }
   }
 }

@@ -5,6 +5,7 @@ const { createAlarmCoordinator } = require('./alarmCoordinator.cjs');
 const WINDOWS_APP_USER_MODEL_ID = 'com.moviealarm.schedule';
 
 let mainWindow = null;
+let compactWindow = null;
 let alarmCoordinator = null;
 let pendingTriggeredPayload = null;
 let activeScheduleNotification = null;
@@ -12,6 +13,11 @@ let tray = null;
 let isQuitting = false;
 let closePromptOpen = false;
 let monitoringSummary = { waitingCount: 0, playingCount: 0 };
+let compactWindowMode = false;
+let compactPresentation = null;
+let compactAlwaysOnTop = true;
+
+const COMPACT_WINDOW_BOUNDS = Object.freeze({ width: 460, height: 420 });
 
 // 顯示關閉監控確認；只有使用者明確選擇「是」才完整結束背景程序。
 async function requestApplicationQuit() {
@@ -36,22 +42,120 @@ async function requestApplicationQuit() {
   app.quit();
 }
 
+// 依目前視窗模式更新系統匣選單，不建立第二個 Tray。
+function refreshTrayMenu() {
+  if (!tray) return;
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: compactWindowMode ? '顯示 Next Movie 小視窗' : '開啟 Movie Schedule Alarm', click: focusExistingMainWindow },
+    {
+      label: compactWindowMode ? '回到完整視窗' : '開啟 Next Movie 小視窗',
+      click: () => setCompactWindowMode(!compactWindowMode)
+    },
+    { type: 'separator' },
+    { label: '結束程式', click: () => void requestApplicationQuit() }
+  ]));
+}
+
 // 建立唯一 Windows 系統匣圖示與受限操作選單。
 function createTray() {
   if (tray) return;
   tray = new Tray(path.join(__dirname, '..', 'assets', 'app-icon.png'));
   tray.setToolTip('Movie Schedule Alarm');
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '開啟 Movie Schedule Alarm', click: focusExistingMainWindow },
-    { type: 'separator' },
-    { label: '結束程式', click: () => void requestApplicationQuit() }
-  ]));
+  refreshTrayMenu();
   tray.on('double-click', focusExistingMainWindow);
+}
+
+// 依警報及小視窗狀態集中管理最上層模式，避免停止警報時取消小視窗置頂。
+function refreshWindowTopmostState() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const alarmIsActive = Boolean(alarmCoordinator?.getDebugState?.().alwaysOnTopActive);
+  mainWindow.setAlwaysOnTop(alarmIsActive, 'screen-saver');
+  if (compactWindow && !compactWindow.isDestroyed()) compactWindow.setAlwaysOnTop(compactAlwaysOnTop, 'floating');
+}
+
+// 建立無標題列的小視窗；只接收 Next Movie 顯示資料，不建立 Ticker、Audio 或場次 state。
+function createCompactWindow() {
+  if (compactWindow && !compactWindow.isDestroyed()) return compactWindow;
+  compactWindow = new BrowserWindow({
+    width: COMPACT_WINDOW_BOUNDS.width,
+    height: COMPACT_WINDOW_BOUNDS.height,
+    minWidth: 400,
+    minHeight: 300,
+    frame: false,
+    transparent: true,
+    roundedCorners: true,
+    hasShadow: false,
+    resizable: false,
+    show: false,
+    alwaysOnTop: compactAlwaysOnTop,
+    skipTaskbar: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      backgroundThrottling: false,
+      preload: path.join(__dirname, 'compactPreload.cjs')
+    }
+  });
+  const workArea = screen.getPrimaryDisplay().workArea;
+  compactWindow.setPosition(workArea.x + workArea.width - COMPACT_WINDOW_BOUNDS.width - 16, workArea.y + 16);
+  compactWindow.setAlwaysOnTop(compactAlwaysOnTop, 'floating');
+  compactWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  compactWindow.webContents.on('will-navigate', event => event.preventDefault());
+  compactWindow.once('ready-to-show', () => {
+    compactWindow?.show();
+    if (compactPresentation) compactWindow?.webContents.send('compact-window:presentation', compactPresentation);
+  });
+  compactWindow.on('closed', () => { compactWindow = null; });
+  void compactWindow.loadFile(path.join(__dirname, 'compact.html'));
+  return compactWindow;
+}
+
+// 切換完整主視窗與純顯示小視窗，兩者共用主 Renderer 的唯一資料來源。
+function setCompactWindowMode(enabled) {
+  if (!mainWindow || mainWindow.isDestroyed()) return { enabled: false };
+  const nextEnabled = Boolean(enabled);
+  if (nextEnabled === compactWindowMode) return { enabled: compactWindowMode };
+
+  if (nextEnabled) {
+    createCompactWindow();
+    mainWindow.hide();
+  } else {
+    compactWindow?.destroy();
+    mainWindow.show();
+    mainWindow.moveTop();
+    mainWindow.focus();
+  }
+
+  compactWindowMode = nextEnabled;
+  refreshTrayMenu();
+  mainWindow.webContents.send('desktop-window:compact-mode-changed', { enabled: compactWindowMode });
+  return { enabled: compactWindowMode };
+}
+
+// 依 Renderer 實際內容高度調整小視窗，並限制在目前螢幕工作區的安全範圍內。
+function resizeCompactWindow(contentHeight) {
+  if (!compactWindowMode || !compactWindow || compactWindow.isDestroyed()) return { enabled: compactWindowMode };
+  const requestedHeight = Number(contentHeight);
+  if (!Number.isFinite(requestedHeight)) throw new TypeError('小視窗內容高度必須是有限數字');
+  const currentBounds = compactWindow.getBounds();
+  const workArea = screen.getDisplayMatching(currentBounds).workArea;
+  const maximumHeight = Math.max(300, Math.floor(workArea.height * 0.82));
+  const height = Math.min(maximumHeight, Math.max(300, Math.round(requestedHeight)));
+  compactWindow.setSize(COMPACT_WINDOW_BOUNDS.width, height, true);
+  return { enabled: true, height };
 }
 
 // 將既有主視窗還原、顯示並移至最上方，供重複啟動時沿用單一執行個體。
 function focusExistingMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (compactWindowMode && compactWindow && !compactWindow.isDestroyed()) {
+    compactWindow.show();
+    compactWindow.moveTop();
+    compactWindow.focus();
+    return;
+  }
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.moveTop();
@@ -75,7 +179,8 @@ function getDesktopStartupState() {
   const loginItem = app.getLoginItemSettings({ path: process.execPath });
   return {
     supported: true,
-    enabled: Boolean(loginItem.openAtLogin && loginItem.executableWillLaunchAtLogin),
+    // Checkbox 只反映應用程式是否已建立 Run 項目；Windows 外部停用狀態由 executableWillLaunchAtLogin 另外顯示。
+    enabled: Boolean(loginItem.openAtLogin),
     openAtLogin: Boolean(loginItem.openAtLogin),
     executableWillLaunchAtLogin: Boolean(loginItem.executableWillLaunchAtLogin),
     installationType
@@ -107,7 +212,10 @@ function bindDesktopAlarmIpc() {
   });
   ipcMain.handle('desktop-alarm:acknowledge', (event, groupKey) => {
     if (!isTrustedSender(event)) throw new Error('拒絕未授權的警報停止來源');
-    return includeWebContentsAudioDebug(alarmCoordinator.acknowledge(groupKey));
+    const debug = alarmCoordinator.acknowledge(groupKey);
+    refreshWindowTopmostState();
+    if (compactWindow && !compactWindow.isDestroyed()) compactWindow.webContents.send('compact-window:alarm-stopped');
+    return includeWebContentsAudioDebug(debug);
   });
 }
 
@@ -176,12 +284,77 @@ function bindDesktopWindowIpc() {
     };
     return monitoringSummary;
   });
+  ipcMain.handle('desktop-window:get-compact-mode', event => {
+    if (!isTrustedSender(event)) throw new Error('拒絕未授權的視窗狀態讀取來源');
+    return { enabled: compactWindowMode };
+  });
+  ipcMain.handle('desktop-window:set-compact-mode', (event, enabled) => {
+    if (!isTrustedSender(event)) throw new Error('拒絕未授權的視窗狀態設定來源');
+    if (typeof enabled !== 'boolean') throw new TypeError('小視窗狀態必須是 boolean');
+    return setCompactWindowMode(enabled);
+  });
+  ipcMain.handle('desktop-window:resize-compact', (event, contentHeight) => {
+    if (!isTrustedSender(event)) throw new Error('拒絕未授權的小視窗尺寸來源');
+    return resizeCompactWindow(contentHeight);
+  });
+  ipcMain.handle('desktop-window:update-compact-presentation', (event, presentation) => {
+    if (!isTrustedSender(event)) throw new Error('拒絕未授權的小視窗顯示資料來源');
+    const serialized = JSON.stringify(presentation ?? {});
+    if (serialized.length > 50000) throw new RangeError('小視窗顯示資料超出限制');
+    compactPresentation = JSON.parse(serialized);
+    if (compactWindow && !compactWindow.isDestroyed() && !compactWindow.webContents.isLoadingMainFrame()) {
+      compactWindow.webContents.send('compact-window:presentation', compactPresentation);
+    }
+    return { updated: true };
+  });
+  ipcMain.handle('compact-window:show-full', event => {
+    if (!compactWindow || event.sender !== compactWindow.webContents) throw new Error('拒絕未授權的小視窗操作來源');
+    return setCompactWindowMode(false);
+  });
+  ipcMain.handle('compact-window:resize', (event, contentHeight) => {
+    if (!compactWindow || event.sender !== compactWindow.webContents) throw new Error('拒絕未授權的小視窗尺寸來源');
+    return resizeCompactWindow(contentHeight);
+  });
+  ipcMain.handle('compact-window:stop-alarm', event => {
+    if (!compactWindow || event.sender !== compactWindow.webContents) throw new Error('拒絕未授權的小視窗警報操作來源');
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('desktop-alarm:stop-requested');
+    }
+    return { requested: true };
+  });
+  ipcMain.handle('compact-window:show-context-menu', event => {
+    if (!compactWindow || event.sender !== compactWindow.webContents) throw new Error('拒絕未授權的小視窗選單來源');
+    const menu = Menu.buildFromTemplate([
+      {
+        label: '顯示在最上層',
+        type: 'radio',
+        checked: compactAlwaysOnTop,
+        click: () => {
+          compactAlwaysOnTop = true;
+          refreshWindowTopmostState();
+        }
+      },
+      {
+        label: '取消最上層顯示',
+        type: 'radio',
+        checked: !compactAlwaysOnTop,
+        click: () => {
+          compactAlwaysOnTop = false;
+          refreshWindowTopmostState();
+        }
+      },
+      { type: 'separator' },
+      { label: '縮小視窗', click: () => compactWindow?.hide() }
+    ]);
+    menu.popup({ window: compactWindow });
+    return { shown: true };
+  });
 }
 
 // 建立唯一桌面視窗，並以安全的相對路徑載入既有網站入口。
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    title: 'Movie Schedule Alarm V1.0',
+    title: 'Movie Schedule Alarm V1.2',
     width: 1440,
     height: 900,
     minWidth: 1100,
@@ -227,6 +400,16 @@ function createMainWindow() {
   // 禁止網頁建立新視窗或將外部頁面交由桌面殼層開啟。
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
+  // 完整主視窗使用原生右鍵選單切換小視窗或縮小至系統匣，不暴露 Electron API 給頁面。
+  mainWindow.webContents.on('context-menu', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    Menu.buildFromTemplate([
+      { label: '切換小視窗模式', click: () => setCompactWindowMode(true) },
+      { type: 'separator' },
+      { label: '縮小視窗', click: () => mainWindow?.hide() }
+    ]).popup({ window: mainWindow });
+  });
+
   // 僅允許目前載入的本機頁面內導覽，避免桌面視窗被導向遠端網站。
   mainWindow.webContents.on('will-navigate', event => {
     event.preventDefault();
@@ -234,6 +417,7 @@ function createMainWindow() {
 
   // Renderer 尚未完成載入時保留最後一個到點 Trigger，載入完成後只補送一次。
   mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.send('desktop-window:compact-mode-changed', { enabled: compactWindowMode });
     if (!pendingTriggeredPayload || !mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;
     const payload = pendingTriggeredPayload;
     pendingTriggeredPayload = null;
@@ -279,7 +463,7 @@ if (!hasSingleInstanceLock) {
   // Electron 完成初始化後才建立 BrowserWindow。
   app.whenReady().then(() => {
     alarmCoordinator = createAlarmCoordinator({
-      getMainWindow: () => mainWindow,
+      getMainWindow: () => compactWindowMode && compactWindow && !compactWindow.isDestroyed() ? compactWindow : mainWindow,
       screen,
       sendTriggered: payload => {
         if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) {
@@ -290,6 +474,9 @@ if (!hasSingleInstanceLock) {
           return { sent: false, rendererDestroyed: false, rendererWebContentsId: mainWindow.webContents.id };
         }
         try {
+          if (compactWindowMode && compactWindow && !compactWindow.isDestroyed()) {
+            compactWindow.webContents.send('compact-window:alarm', payload);
+          }
           mainWindow.webContents.send('desktop-alarm:triggered', payload);
           return { sent: true, rendererDestroyed: false, rendererWebContentsId: mainWindow.webContents.id };
         } catch {

@@ -13,11 +13,6 @@ export function escapeHtml(value) {
   }[character]));
 }
 
-// 產生簡單且可辨識的前端暫用識別碼。
-export function createId(prefix = 'item') {
-  return `${prefix}-${Date.now().toString(36)}`;
-}
-
 // 將 UTC 日期物件轉為固定的 YYYY-MM-DD 日期鍵。
 export function formatDateKey(date) {
   const year = date.getUTCFullYear();

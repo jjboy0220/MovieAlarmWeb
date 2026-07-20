@@ -1,5 +1,17 @@
 # Movie Schedule Alarm V1.0
 
+## V1.2 廳別語音與小視窗更新
+
+V1.2 優先使用 Windows 已安裝的台灣中文本機語音，並以較清楚自然的語速、音高與句間停頓播報廳別。設定中心提供單次廳別語音測試；正式警報仍依同時場次順序循環播報，直到使用者停止提醒。
+
+## V1.1 小視窗測試版
+
+Windows Desktop V1.1 新增 Next Movie 小視窗模式。可從系統匣選單選擇「開啟 Next Movie 小視窗」，小視窗會顯示既有 Next Movie 的日期、開演時間、倒數、影廳、片名、語言與規格，並保持在一般視窗最上層。按下小視窗右上方「完整視窗」即可恢復原本畫面。
+
+小視窗沿用同一個 BrowserWindow、集中 state、Ticker、Audio 與 Main Process Alarm Coordinator，不建立第二份場次或警報排程。正式 V1.0 安裝檔仍保留為 `release/Movie-Schedule-Alarm-V1.0-Setup.exe`；V1.1 未完成人工測試前不覆寫該檔案。
+
+V1.1 Desktop 預設使用「廳別語音播報」，設定中心仍可切換回預設警報聲或靜音。警報到點時會依同時開播場次列表順序播報影廳，整組播完後持續循環，直到使用者停止目前警報；語音使用 Windows／Chromium 本機語音，不需要網路。
+
 Movie Schedule Alarm 是以 HTML5、CSS3 與 Vanilla JavaScript ES6 製作的影城營運場次工具。系統在瀏覽器中讀取 Excel 場次表、標準化影廳與電影資料，並以 Excel 解析出的英文片名作為唯一電影名稱來源。
 
 ## 專案結構
@@ -38,17 +50,7 @@ Excel 解析使用專案內的 SheetJS `xlsx 0.18.5` 瀏覽器版檔案，不需
 
 ## 啟動方式
 
-雙擊 `啟動電影場次鬧鐘.bat` 即可開啟系統。
-
-Launcher 會依序檢查 5500 至 5505，選擇第一個可用 Port 啟動本機 HTTP Server，並自動以預設瀏覽器開啟對應的 `http://127.0.0.1:實際Port/index.html`。
-
-請先確認已安裝 Python；建議安裝時勾選 `Add Python to PATH`。不要直接雙擊 `index.html`。
-
-## 關閉方式
-
-雙擊 `停止電影場次鬧鐘.bat` 即可停止 Server。
-
-停止工具只會關閉由 Launcher 建立、名為 `Movie Schedule Alarm Server` 的專屬命令視窗及其 Python Server，不會關閉其他 CMD 視窗。關閉瀏覽器分頁後，Server 可能仍在執行，請使用停止工具或在 Server 視窗按 `Ctrl + C` 完全關閉服務。
+一般使用者請安裝正式 V1.0 Setup，並從 Windows 開始功能表啟動「Movie Schedule Alarm」。開發環境使用 `npm.cmd run desktop` 啟動 Electron；不再需要 BAT 啟動工具或 Python HTTP Server。
 ## Excel 解析方式
 
 `excelReader.js` 會自動搜尋 `Screen`、`Start`、`Finish`、`Film Title` 標題，並依實際資料位置讀取，不會硬編碼欄位索引。Parser 會：
@@ -93,6 +95,8 @@ Desktop 版本支援 Windows 系統匣背景監控。最小化視窗後會隱藏
 
 成功匯入 Excel 或 PDF 後，程式只在本機保存解析後的標準化場次與來源摘要，不保存原始檔案。下次啟動會恢復最新週期、以實際時間重算狀態並安排尚未開播的警報；整週最後一場結束後會提醒匯入下一週場次表。
 
+核心 Release 回歸檢查可使用 `npm.cmd run test:regression` 執行；正式發佈前仍須依 `docs/V1.0-RELEASE-TEST-CHECKLIST.md` 完成人工測試。
+
 Windows Desktop Preview 使用 Electron 封裝既有 HTML、CSS 與 Vanilla JavaScript，不重寫網站本體。只有建置電腦需要 Node.js 與 npm；一般使用者只需執行建置後的 EXE，不需要安裝 Node.js、npm、Python、VS Code 或 Live Server。
 
 開發與建置指令：
@@ -128,7 +132,7 @@ Desktop 啟動約 5 秒後會檢查是否已有本機今天的有效場次；若
 - 新版 DCP 匯入失敗時保留上一份有效資料與目前中文片名。
 - 找不到中文片名的場次仍安全顯示原始英文。
 
-Preview 4 的免安裝版檔名為 `Movie-Schedule-Alarm-V1.0-Preview.4-Portable.exe`，NSIS 安裝程式檔名為 `Movie-Schedule-Alarm-V1.0-Preview.4-Setup.exe`。
+正式 V1.0 僅保留 NSIS 安裝程式 `Movie-Schedule-Alarm-V1.0-Setup.exe` 作為發佈成品；日常使用請從開始功能表啟動已安裝的應用程式。正式版使用 Electron `43.1.1`，並已完成核心回歸與 npm 安全稽核。
 
 ### Preview 3 更新內容
 

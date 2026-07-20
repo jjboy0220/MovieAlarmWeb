@@ -16,6 +16,13 @@ body.settings-open { overflow: hidden; }
 .settings-form { display: grid; gap: 16px; }
 .settings-field { display: grid; gap: 8px; color: var(--text-primary); font-weight: 800; }
 .settings-field select { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-soft); color: var(--text-primary); font: inherit; }
+.settings-voice-test { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); color: var(--text-primary); }
+.settings-voice-test > div { display: grid; grid-template-columns: minmax(100px, .45fr) 1fr; gap: 10px; }
+.settings-voice-test select, .settings-voice-test button { min-height: 40px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--button-surface); color: var(--text-primary); font: inherit; font-weight: 700; }
+.settings-voice-test button { cursor: pointer; }
+.settings-voice-test button:hover { border-color: var(--primary); color: var(--primary); }
+.settings-voice-test select:focus-visible, .settings-voice-test button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.settings-voice-test p { min-height: 1.2em; margin: 0; color: var(--text-muted); font-size: .82rem; }
 .settings-range-row { display: grid; grid-template-columns: minmax(0, 1fr) 62px; align-items: center; gap: 14px; }
 .settings-range-row input { width: 100%; accent-color: var(--primary); }
 .settings-range-row output { padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-blue); color: var(--primary-active); font-size: .86rem; font-variant-numeric: tabular-nums; text-align: center; }

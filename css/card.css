@@ -64,3 +64,83 @@ body.light .next-session-empty { border-color: var(--next-session-border); backg
   body.light #nextCountdown { font-size: clamp(2.8rem, 13vw, 3.75rem); }
   body.light .next-session-list { margin: .7rem 0 1.1rem; }
 }
+
+/* V1.1 Desktop 小視窗沿用同一張 Next Movie 卡片，避免建立第二套 UI 或計時資料。 */
+.compact-window-exit { display: none; }
+body.compact-window-mode { min-width: 0; overflow: hidden; }
+body.compact-window-mode > .topbar,
+body.compact-window-mode > footer { display: none; }
+body.compact-window-mode .layout {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  padding: 8px;
+}
+body.compact-window-mode .layout > :not(.next-card):not(.compact-window-exit) { display: none; }
+body.compact-window-mode .compact-window-exit {
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border: 1px solid var(--next-card-border);
+  border-radius: 999px;
+  background: var(--next-card-badge-bg);
+  color: var(--next-card-badge-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 800;
+}
+body.compact-window-mode .compact-window-exit:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+body.compact-window-mode .next-card {
+  width: 100%;
+  height: auto;
+  max-height: calc(100vh - 16px);
+  padding: 14px 12px 12px;
+  overflow: auto;
+  border-radius: 16px;
+}
+body.compact-window-mode .card-top { margin-bottom: .3rem; }
+body.compact-window-mode .card-top p { font-size: 1.12rem; letter-spacing: .1em; }
+body.compact-window-mode .card-top .status-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px 8px;
+  font-size: .68rem;
+  transform: none;
+}
+body.compact-window-mode .next-date { top: 17px; left: 14px; }
+body.compact-window-mode .next-date strong { font-size: .68rem; }
+body.compact-window-mode .next-hero { gap: .25rem; }
+body.compact-window-mode .next-time { padding: .35rem 0 0; }
+body.compact-window-mode .next-time span,
+body.compact-window-mode .next-countdown span { font-size: .62rem; }
+body.compact-window-mode #nextTime { font-size: 2.85rem; }
+body.compact-window-mode .next-countdown { margin-top: .2rem; }
+body.compact-window-mode #nextCountdown { margin-top: .1rem; font-size: 1.95rem; }
+body.compact-window-mode .next-session-list {
+  grid-template-columns: 1fr;
+  gap: .45rem;
+  margin: .4rem 0 0;
+}
+body.compact-window-mode .next-session-item { padding: .5rem .65rem; }
+body.compact-window-mode .next-session-title { margin: .25rem 0 .35rem; font-size: .95rem; }
+body.compact-window-mode .next-session-item .hall-badge,
+body.compact-window-mode .next-session-item .format-badge,
+body.compact-window-mode .next-session-item .language-badge { padding: 5px 10px; font-size: .85rem; }
+body.light.compact-window-mode .next-card { padding: 14px 12px 12px; border-radius: 16px; }
+body.light.compact-window-mode .next-date { top: 17px; }
+body.light.compact-window-mode .card-top { margin-bottom: .3rem; }
+body.light.compact-window-mode .card-top p { font-size: 1.12rem; }
+body.light.compact-window-mode #nextTime { font-size: 2.85rem; }
+body.light.compact-window-mode #nextCountdown { font-size: 1.95rem; }
+body.light.compact-window-mode .next-session-list { margin: .4rem 0 0; }

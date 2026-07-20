@@ -183,7 +183,7 @@ Commit 1 至 Commit 5、UI 主題功能、Windows Desktop Preview 2 與 Preview 
 - ⏳ Windows 系統主音量雙向同步；目前桌面版程式音量固定為 100%，實際響度由 Windows 主音量與應用程式音量混音器控制。
 - ⏳ 正式程式碼簽章憑證與簽署流程。
 - ⏳ SmartScreen 發布者信任與正式發佈聲譽。
-- ⏳ Electron 主版本安全升級；需另開獨立工作並完成相容性與回歸測試。
+- ✅ Electron 已升級至 `43.1.1`，並通過核心回歸、語法檢查與 npm 安全稽核。
 
 ## ✅ DCP 中文片名本機對照
 
@@ -231,7 +231,7 @@ Commit 1 至 Commit 5、UI 主題功能、Windows Desktop Preview 2 與 Preview 
 - 不建立第二個 Audio、State 或 Ticker
 - 警報音訊解鎖狀態不寫入 localStorage
 
-## ⏳ Commit 7：Performance & V1.0 Release
+## ✅ Commit 7：Performance & V1.0 Release
 
 ### 目標
 
@@ -260,6 +260,8 @@ Commit 1 至 Commit 5、UI 主題功能、Windows Desktop Preview 2 與 Preview 
 - 主要功能可離線使用
 - Git 工作區乾淨
 - 已推送到 `origin/main`
+
+已完成未使用函式清理、單一 Ticker／Audio／State 與事件監聽稽核、核心自動回歸、實際整週 PDF 解析、CHANGELOG、正式測試清單，以及 V1.0 Portable／Setup 人工驗收。
 
 ## ⛔ V1.0 暫不開發
 

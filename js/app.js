@@ -6,7 +6,7 @@ import { createSessionGroupKey, getLatestUntriggeredSessionGroup, getNextMoviePr
 import { formatCountdown, getCountdownSeconds, getCountdownTickerStatus, startCountdownTicker } from './countdown.js';
 import { createAlarmChannel } from './alarm.js';
 import { getScheduleDebugInfo } from './debug.js';
-import { applyTheme, bindAlarmControls, bindDailyImportReminder, bindDcpTitleControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, hideAlarmModal, hideDailyImportReminder, showDailyImportReminder, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateDcpTitleStatus, updateDebugPanel, updateFileStatus, updateNextMovieCard, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
+import { applyTheme, bindAlarmControls, bindCompactWindowControls, bindDailyImportReminder, bindDcpTitleControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, hideAlarmModal, hideDailyImportReminder, showDailyImportReminder, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateCompactWindowMode, updateDcpTitleStatus, updateDebugPanel, updateFileStatus, updateHallVoiceTestStatus, updateNextMovieCard, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
 import { createEmptyTable, renderMovieRows } from './table.js';
 import { bindSearch, matchesSearch } from './search.js';
 import { bindFilters, matchesFilters, populateDateFilterOptions, populateFilterOptions } from './filter.js';
@@ -27,8 +27,11 @@ const DAILY_REMINDER_STORAGE_KEY = 'movieScheduleAlarm.dailyReminder.v1';
 const restoredDcpTitleData = loadDcpTitleData();
 let desktopAlarmScheduleSignature = '';
 let unsubscribeDesktopAlarm = null;
+let unsubscribeDesktopAlarmStopRequest = null;
 let unsubscribeDesktopScheduleReminder = null;
+let unsubscribeDesktopWindowMode = null;
 let desktopMonitoringSignature = '';
+let compactWindowResizeObserver = null;
 
 // 單一應用程式狀態，所有清單、警報、搜尋、篩選、Next Movie 與偵錯資訊都由此處驅動。
 const state = {
@@ -77,6 +80,11 @@ const state = {
     openAtLogin: false,
     executableWillLaunchAtLogin: false,
     installationType: desktopStartup ? 'development' : 'browser'
+  },
+  desktopWindowState: {
+    isDesktop: Boolean(desktopWindow),
+    compactMode: false,
+    reportedContentHeight: 0
   },
   dailyReminderDebug: {
     hasTodaySchedule: false,
@@ -151,6 +159,46 @@ function syncDesktopMonitoringState() {
   if (signature === desktopMonitoringSignature) return;
   desktopMonitoringSignature = signature;
   void desktopWindow.updateMonitoringState({ waitingCount, playingCount }).catch(() => {});
+}
+
+// 將 Main Process 回傳的小視窗狀態寫回唯一集中 state，再更新既有 Next Movie 畫面。
+function applyDesktopWindowMode(payload = {}) {
+  state.desktopWindowState.compactMode = Boolean(payload.enabled);
+  updateCompactWindowMode(state.desktopWindowState.compactMode, state.desktopWindowState.isDesktop);
+  if (state.desktopWindowState.compactMode) requestAnimationFrame(syncCompactWindowContentHeight);
+}
+
+// 量測 Next Movie 實際內容並通知 Main Process 自適應高度；相同高度不重複送出 IPC。
+function syncCompactWindowContentHeight() {
+  if (!state.desktopWindowState.compactMode || !desktopWindow?.resizeCompact) return;
+  const card = document.querySelector('#nextMovieCard');
+  if (!card) return;
+  const contentHeight = Math.ceil(card.scrollHeight + 16);
+  if (contentHeight === state.desktopWindowState.reportedContentHeight) return;
+  state.desktopWindowState.reportedContentHeight = contentHeight;
+  void desktopWindow.resizeCompact(contentHeight).catch(() => {});
+}
+
+// 使用內容變更觀察器回應單場或同時多場卡片高度，不新增 Timer。
+function initializeCompactWindowAutoSize() {
+  if (!desktopWindow?.resizeCompact || typeof ResizeObserver !== 'function') return;
+  compactWindowResizeObserver = new ResizeObserver(() => {
+    if (state.desktopWindowState.compactMode) requestAnimationFrame(syncCompactWindowContentHeight);
+  });
+  compactWindowResizeObserver.observe(document.querySelector('#nextMovieCard'));
+}
+
+// 初始化桌面視窗模式並訂閱受限 IPC；瀏覽器模式維持完整頁面。
+async function initializeDesktopWindowMode() {
+  if (!desktopWindow?.getCompactMode) {
+    updateCompactWindowMode(false, false);
+    return;
+  }
+  try {
+    applyDesktopWindowMode(await desktopWindow.getCompactMode());
+  } catch {
+    applyDesktopWindowMode({ enabled: false });
+  }
 }
 
 // 儲存當日提醒日期與稍後提醒時間，不保存 Excel 或任何場次內容。
@@ -444,6 +492,7 @@ function updateSettings(patch, shouldPersist = true) {
     }
   }
   void syncDesktopAlarmSchedule();
+  if (Object.prototype.hasOwnProperty.call(patch, 'theme')) updateNextMovieClock(new Date());
   updateDebugPanelFromState(new Date());
 }
 // 將唯一 Audio Alarm Channel 的執行快照同步到集中 state，供 UI 與偵錯面板讀取。
@@ -488,6 +537,30 @@ function updateNextMovieClock(now = new Date()) {
     ? formatCountdown(getCountdownSeconds(presentation.group.startDateTime, now))
     : formatCountdown(0);
   updateNextMovieCard(presentation, countdown);
+  const group = presentation.group;
+  const compactPresentation = {
+    type: presentation.type,
+    theme: state.settings.theme,
+    status: presentation.type === 'upcoming' ? '等待中' : '',
+    date: group?.sessions?.[0]?.date || '--',
+    weekday: group?.sessions?.[0]?.weekday || '',
+    time: group?.sessions?.[0]?.start || '--:--',
+    countdown,
+    sessions: (group?.sessions || []).map(session => ({
+      hall: session.hall || '',
+      title: session.displayTitle || session.title || '',
+      language: session.language || '',
+      formats: session.formats?.length ? session.formats : [session.formatDisplay || session.format].filter(Boolean)
+    }))
+  };
+  void desktopWindow?.updateCompactPresentation?.(compactPresentation).catch(() => {});
+}
+
+// 使用唯一 Alarm Channel 播放一次所選警報語音，正式警報進行中則安全拒絕試聽。
+async function testHallVoice(hall) {
+  updateHallVoiceTestStatus('正在播放警報語音…');
+  const result = await alarmChannel.previewHallAnnouncement(hall, state.settings);
+  updateHallVoiceTestStatus(result.success ? `已播放：${result.message}` : result.message);
 }
 
 // 以目前集中 state 更新警報 Modal 的音效提示，不會重建或覆蓋 activeAlarmGroup。
@@ -508,7 +581,7 @@ function updateDebugPanelFromState(now = new Date()) {
 // 實際啟動警報音效；播放失敗時仍保留 Modal，並以非阻塞訊息提示使用者。
 async function playAlarmForGroup(group) {
   state.desktopAlarmDebug.audioPlayCalledAt = Date.now();
-  const result = await alarmChannel.startAlarm(state.settings);
+  const result = await alarmChannel.startAlarm(state.settings, group);
   state.desktopAlarmDebug.audioPlayResolvedAt = Date.now();
   state.desktopAlarmDebug.audioPlayError = result.message || '';
   syncAlarmRuntimeState();
@@ -821,7 +894,10 @@ function init() {
   bindThemeToggle(() => {
     updateSettings({ theme: state.settings.theme === 'light' ? 'dark' : 'light' });
   });
-  bindSettingsControls({ onChange: updateSettings, onStartupChange: updateDesktopStartup });
+  bindSettingsControls({ onChange: updateSettings, onStartupChange: updateDesktopStartup, onHallVoiceTest: testHallVoice });
+  bindCompactWindowControls(() => {
+    void desktopWindow?.setCompactMode(false).then(applyDesktopWindowMode).catch(() => {});
+  });
   bindDcpTitleControls({ onImport: importDcpTitles, onClear: clearDcpTitles });
   refreshDcpTitleStatus();
   bindDailyImportReminder({
@@ -867,7 +943,9 @@ function init() {
     event.target.value = '';
   });
   bindVisibilityRefresh();
+  initializeCompactWindowAutoSize();
   unsubscribeDesktopAlarm = desktopAlarm?.onTriggered(handleDesktopAlarmTriggered) || null;
+  unsubscribeDesktopAlarmStopRequest = desktopAlarm?.onStopRequested(stopActiveAlarm) || null;
   unsubscribeDesktopScheduleReminder = desktopScheduleReminder?.onShowRequested(payload => {
     if (payload?.kind === 'coverage-exhausted') {
       const coverage = getScheduleCoverageState(state.sessions, new Date());
@@ -880,13 +958,18 @@ function init() {
     }
     showDailyImportReminder();
   }) || null;
+  unsubscribeDesktopWindowMode = desktopWindow?.onCompactModeChanged(applyDesktopWindowMode) || null;
   window.addEventListener('beforeunload', () => {
     dailyReminderTimer.cancel();
     unsubscribeDesktopAlarm?.();
+    unsubscribeDesktopAlarmStopRequest?.();
     unsubscribeDesktopScheduleReminder?.();
+    unsubscribeDesktopWindowMode?.();
+    compactWindowResizeObserver?.disconnect();
   }, { once: true });
   renderFromState();
   void initializeDesktopStartup();
+  void initializeDesktopWindowMode();
   scheduleDailyReminder(INITIAL_DAILY_REMINDER_DELAY_MS);
   startCountdownTicker(handleTimeTick);
 }

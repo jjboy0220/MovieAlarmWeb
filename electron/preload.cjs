@@ -10,6 +10,12 @@ contextBridge.exposeInMainWorld('desktopAlarm', Object.freeze({
     const listener = (_event, payload) => callback(payload);
     ipcRenderer.on('desktop-alarm:triggered', listener);
     return () => ipcRenderer.removeListener('desktop-alarm:triggered', listener);
+  },
+  onStopRequested: callback => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = () => callback();
+    ipcRenderer.on('desktop-alarm:stop-requested', listener);
+    return () => ipcRenderer.removeListener('desktop-alarm:stop-requested', listener);
   }
 }));
 
@@ -32,5 +38,15 @@ contextBridge.exposeInMainWorld('desktopScheduleReminder', Object.freeze({
 
 // 僅允許 Renderer 傳送等待中／播放中數量，供關閉監控確認使用。
 contextBridge.exposeInMainWorld('desktopWindow', Object.freeze({
-  updateMonitoringState: summary => ipcRenderer.invoke('desktop-window:update-monitoring', summary)
+  updateMonitoringState: summary => ipcRenderer.invoke('desktop-window:update-monitoring', summary),
+  getCompactMode: () => ipcRenderer.invoke('desktop-window:get-compact-mode'),
+  setCompactMode: enabled => ipcRenderer.invoke('desktop-window:set-compact-mode', enabled),
+  resizeCompact: contentHeight => ipcRenderer.invoke('desktop-window:resize-compact', contentHeight),
+  updateCompactPresentation: presentation => ipcRenderer.invoke('desktop-window:update-compact-presentation', presentation),
+  onCompactModeChanged: callback => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('desktop-window:compact-mode-changed', listener);
+    return () => ipcRenderer.removeListener('desktop-window:compact-mode-changed', listener);
+  }
 }));

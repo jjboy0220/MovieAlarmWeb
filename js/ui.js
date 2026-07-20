@@ -283,6 +283,18 @@ function getDebugEntries(debugInfo) {
   ];
 }
 
+// 依 Main Process 的唯一小視窗狀態切換版面，瀏覽器模式不顯示桌面專用控制項。
+export function updateCompactWindowMode(isCompact, isDesktop = false) {
+  document.body.classList.toggle('compact-window-mode', Boolean(isCompact));
+  const exitButton = $('#compactWindowExitButton');
+  exitButton.hidden = !isDesktop || !isCompact;
+}
+
+// 綁定小視窗返回按鈕；實際尺寸與最上層設定只交由 Main Process 處理。
+export function bindCompactWindowControls(onExit) {
+  $('#compactWindowExitButton').addEventListener('click', () => onExit());
+}
+
 // 顯示今日場次匯入提醒並將鍵盤焦點移至主要上傳按鈕。
 export function showDailyImportReminder({ title = '尚未匯入今日場次表', message = '請上傳當日場次表，以啟用場次監控、倒數與鬧鐘提醒。' } = {}) {
   $('#dailyImportReminderTitle').textContent = title;
@@ -386,9 +398,8 @@ export function updateSettingsForm(settings, desktopStartupState = {}) {
     ? Boolean(desktopStartupState.enabled)
     : Boolean(settings?.startupEnabled);
 
-  if (startupSupported && !desktopStartupState.executableWillLaunchAtLogin && settings?.startupEnabled) {
-    $('#settingsStartupStatus').textContent = 'Windows 已停用此啟動項目';
-  } else if (startupSupported) {
+  // Windows 尚未建立 StartupApproved 紀錄時，Electron 也可能回傳 false；Run 項目存在才是此開關的可靠來源。
+  if (startupSupported) {
     $('#settingsStartupStatus').textContent = desktopStartupState.enabled ? '已啟用' : '已關閉';
   } else if (desktopStartupState.installationType === 'portable') {
     $('#settingsStartupStatus').textContent = 'Portable 不建立永久啟動項目；請使用 Setup 安裝版。';
@@ -405,7 +416,7 @@ export function updateSettingsNotice(message) {
 }
 
 // 綁定設定中心開關與控制項；所有設定變更只回傳給 app.js 更新集中 state。
-export function bindSettingsControls({ onChange, onStartupChange }) {
+export function bindSettingsControls({ onChange, onStartupChange, onHallVoiceTest }) {
   $('#settingsButton').addEventListener('click', openSettingsModal);
   $('#settingsCloseButton').addEventListener('click', closeSettingsModal);
   $('[data-settings-close]').addEventListener('click', closeSettingsModal);
@@ -423,6 +434,12 @@ export function bindSettingsControls({ onChange, onStartupChange }) {
   $('#settingsDebugPanel').addEventListener('change', event => onChange({ debugPanelOpen: event.target.checked }));
   $('#settingsDailyImportReminder').addEventListener('change', event => onChange({ dailyImportReminderEnabled: event.target.checked }));
   $('#settingsStartupEnabled').addEventListener('change', event => onStartupChange(event.target.checked));
+  $('#playHallVoiceTestButton').addEventListener('click', () => onHallVoiceTest($('#hallVoiceTestSelect').value));
+}
+
+// 更新警報語音試聽的非阻塞結果，不影響正式警報 Modal 或設定保存訊息。
+export function updateHallVoiceTestStatus(message) {
+  $('#hallVoiceTestStatus').textContent = message || '';
 }
 
 // 將 DCP 匯入時間格式化為本機 YYYY/MM/DD HH:mm，無效值安全省略。
