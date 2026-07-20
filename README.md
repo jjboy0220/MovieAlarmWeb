@@ -109,7 +109,7 @@ npm run build:installer
 - 提供預設警報、廳別語音與靜音視覺提醒。
 - 停止警報後取消強制置頂。
 
-V1.2 的免安裝版檔名為 `Movie-Schedule-Alarm-V1.2-Portable.exe`，NSIS 安裝程式檔名為 `Movie-Schedule-Alarm-V1.2-Setup.exe`。
+V1.2 的免安裝版檔名為 `Movie-Schedule-Alarm-V1.2-Portable.exe`，TC 影城的 NSIS 安裝程式檔名為 `(TC)Movie-Schedule-Alarm-V1.2-Setup.exe`；括號內代號用來區分不同影城規範的版本。
 
 ### SheetJS 離線支援
 

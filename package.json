@@ -61,7 +61,7 @@
       "artifactName": "Movie-Schedule-Alarm-V1.2-Portable.${ext}"
     },
     "nsis": {
-      "artifactName": "Movie-Schedule-Alarm-V1.2-Setup.${ext}"
+      "artifactName": "(TC)Movie-Schedule-Alarm-V1.2-Setup.${ext}"
     }
   }
 }
