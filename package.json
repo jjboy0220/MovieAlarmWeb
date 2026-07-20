@@ -23,6 +23,9 @@
     "appId": "com.moviealarm.schedule",
     "productName": "Movie Schedule Alarm",
     "asar": true,
+    "asarUnpack": [
+      "electron/bin/SystemVolumeHelper.exe"
+    ],
     "directories": {
       "output": "release",
       "buildResources": "build"

@@ -25,6 +25,12 @@ contextBridge.exposeInMainWorld('desktopStartup', Object.freeze({
   setEnabled: enabled => ipcRenderer.invoke('desktop-startup:set-enabled', enabled)
 }));
 
+// 僅暴露 Windows 主音量百分比的讀寫方法，不提供 Shell、PowerShell 或原始 IPC 權限。
+contextBridge.exposeInMainWorld('desktopSystemVolume', Object.freeze({
+  getState: () => ipcRenderer.invoke('system-volume:get-state'),
+  setVolume: volume => ipcRenderer.invoke('system-volume:set', volume)
+}));
+
 // 僅暴露今日場次原生通知與點擊回呼，不提供 Notification 或視窗控制權。
 contextBridge.exposeInMainWorld('desktopScheduleReminder', Object.freeze({
   notify: options => ipcRenderer.invoke('desktop-schedule-reminder:notify', options),

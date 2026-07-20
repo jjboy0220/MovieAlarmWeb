@@ -23,6 +23,7 @@ const desktopAlarm = globalThis.desktopAlarm || null;
 const desktopStartup = globalThis.desktopStartup || null;
 const desktopScheduleReminder = globalThis.desktopScheduleReminder || null;
 const desktopWindow = globalThis.desktopWindow || null;
+const desktopSystemVolume = globalThis.desktopSystemVolume || null;
 const DAILY_REMINDER_STORAGE_KEY = 'movieScheduleAlarm.dailyReminder.v1';
 const restoredDcpTitleData = loadDcpTitleData();
 let desktopAlarmScheduleSignature = '';
@@ -32,6 +33,8 @@ let unsubscribeDesktopScheduleReminder = null;
 let unsubscribeDesktopWindowMode = null;
 let desktopMonitoringSignature = '';
 let compactWindowResizeObserver = null;
+let systemVolumeRequestPending = false;
+let systemVolumeWriteCount = 0;
 
 // 單一應用程式狀態，所有清單、警報、搜尋、篩選、Next Movie 與偵錯資訊都由此處驅動。
 const state = {
@@ -495,6 +498,41 @@ function updateSettings(patch, shouldPersist = true) {
   if (Object.prototype.hasOwnProperty.call(patch, 'theme')) updateNextMovieClock(new Date());
   updateDebugPanelFromState(new Date());
 }
+
+// 將設定中心的音量變更同步至 Windows 主音量；其他設定仍沿用既有集中更新流程。
+function updateSettingsFromControls(patch) {
+  updateSettings(patch);
+  if (!desktopSystemVolume || !Object.prototype.hasOwnProperty.call(patch, 'alarmVolume')) return;
+  const volume = Math.round(state.settings.alarmVolume * 100);
+  systemVolumeWriteCount += 1;
+  void desktopSystemVolume.setVolume(volume).catch(error => {
+    updateSettingsNotice(error instanceof Error ? error.message : '無法更新 Windows 系統音量');
+  }).finally(() => {
+    systemVolumeWriteCount -= 1;
+    if (systemVolumeWriteCount === 0) void syncSystemVolumeFromWindows();
+  });
+}
+
+// 將 Windows 回傳的主音量合併到唯一 settings state，避免系統與軟體各持有不同音量值。
+function applySystemVolumeState(volumeState, shouldPersist = true) {
+  if (!volumeState?.supported || !Number.isFinite(volumeState.volume)) return;
+  const alarmVolume = Math.min(100, Math.max(0, Math.round(volumeState.volume))) / 100;
+  if (Math.abs(state.settings.alarmVolume - alarmVolume) < 0.001) return;
+  updateSettings({ alarmVolume }, shouldPersist);
+}
+
+// 共用既有每秒 Ticker 讀取 Windows 主音量，請求尚未完成時不重複送出。
+async function syncSystemVolumeFromWindows(shouldPersist = true) {
+  if (!desktopSystemVolume || systemVolumeRequestPending || systemVolumeWriteCount > 0) return;
+  systemVolumeRequestPending = true;
+  try {
+    applySystemVolumeState(await desktopSystemVolume.getState(), shouldPersist);
+  } catch (error) {
+    updateSettingsNotice(error instanceof Error ? error.message : '無法讀取 Windows 系統音量');
+  } finally {
+    systemVolumeRequestPending = false;
+  }
+}
 // 將唯一 Audio Alarm Channel 的執行快照同步到集中 state，供 UI 與偵錯面板讀取。
 function syncAlarmRuntimeState() {
   const alarmRuntime = alarmChannel.getState();
@@ -683,6 +721,7 @@ function handleTimeTick(now = new Date(), resumedFromBackground = false) {
   applyFilters(now);
   updateActiveAlarmNotice();
   void checkScheduleCoverageReminder(now);
+  void syncSystemVolumeFromWindows();
 }
 
 // 集中處理 Next Movie、表格、統計與空狀態，避免各模組各自持有場次資料。
@@ -894,7 +933,7 @@ function init() {
   bindThemeToggle(() => {
     updateSettings({ theme: state.settings.theme === 'light' ? 'dark' : 'light' });
   });
-  bindSettingsControls({ onChange: updateSettings, onStartupChange: updateDesktopStartup, onHallVoiceTest: testHallVoice });
+  bindSettingsControls({ onChange: updateSettingsFromControls, onStartupChange: updateDesktopStartup, onHallVoiceTest: testHallVoice });
   bindCompactWindowControls(() => {
     void desktopWindow?.setCompactMode(false).then(applyDesktopWindowMode).catch(() => {});
   });
@@ -970,6 +1009,7 @@ function init() {
   renderFromState();
   void initializeDesktopStartup();
   void initializeDesktopWindowMode();
+  void syncSystemVolumeFromWindows(false);
   scheduleDailyReminder(INITIAL_DAILY_REMINDER_DELAY_MS);
   startCountdownTicker(handleTimeTick);
 }

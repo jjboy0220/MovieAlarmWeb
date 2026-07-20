@@ -1,6 +1,7 @@
 const path = require('node:path');
 const { app, BrowserWindow, Menu, Notification, Tray, dialog, ipcMain, powerMonitor, screen } = require('electron');
 const { createAlarmCoordinator } = require('./alarmCoordinator.cjs');
+const { createSystemVolumeBridge } = require('./systemVolumeBridge.cjs');
 
 const WINDOWS_APP_USER_MODEL_ID = 'com.moviealarm.schedule';
 
@@ -16,6 +17,7 @@ let monitoringSummary = { waitingCount: 0, playingCount: 0 };
 let compactWindowMode = false;
 let compactPresentation = null;
 let compactAlwaysOnTop = true;
+const systemVolumeBridge = createSystemVolumeBridge();
 
 const COMPACT_WINDOW_BOUNDS = Object.freeze({ width: 460, height: 420 });
 
@@ -232,6 +234,19 @@ function bindDesktopStartupIpc() {
     if (!currentState.supported) return currentState;
     app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath });
     return getDesktopStartupState();
+  });
+}
+
+// 註冊受限制的 Windows 主音量 IPC，只接受目前主視窗與 0 至 100 的整數百分比。
+function bindSystemVolumeIpc() {
+  ipcMain.handle('system-volume:get-state', event => {
+    if (!isTrustedSender(event)) throw new Error('拒絕未授權的系統音量讀取來源');
+    return systemVolumeBridge.getState();
+  });
+  ipcMain.handle('system-volume:set', (event, volume) => {
+    if (!isTrustedSender(event)) throw new Error('拒絕未授權的系統音量設定來源');
+    if (!Number.isInteger(volume) || volume < 0 || volume > 100) throw new RangeError('系統音量必須是 0 至 100 的整數');
+    return systemVolumeBridge.setVolume(volume);
   });
 }
 
@@ -490,6 +505,7 @@ if (!hasSingleInstanceLock) {
     });
     bindDesktopAlarmIpc();
     bindDesktopStartupIpc();
+    bindSystemVolumeIpc();
     bindDesktopScheduleReminderIpc();
     bindDesktopWindowIpc();
     powerMonitor.on('resume', () => alarmCoordinator.checkAfterResume());
@@ -508,3 +524,6 @@ if (!hasSingleInstanceLock) {
 app.on('window-all-closed', () => {
   if (isQuitting) app.quit();
 });
+
+// Electron 結束前釋放唯一的 Windows Core Audio 橋接程序。
+app.on('will-quit', () => systemVolumeBridge.dispose());
