@@ -1,0 +1,70 @@
+:root { color-scheme: dark; font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; }
+body { padding: 5px; overflow: hidden; }
+.compact-card { overflow: auto; border: 1px solid #315d8d; border-radius: 22px; background: linear-gradient(145deg, #101c2d, #17355b); color: #f8fafc; box-shadow: none; }
+.compact-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; padding: 13px 16px 9px; -webkit-app-region: drag; }
+.compact-header > strong { font-size: .78rem; }
+.compact-header > span { font-size: 1.18rem; font-weight: 900; letter-spacing: .1em; white-space: nowrap; }
+.compact-header button { justify-self: end; padding: 7px 11px; border: 1px solid #396895; border-radius: 999px; background: #17355b; color: #e5f1ff; cursor: pointer; font: inherit; font-size: .74rem; font-weight: 800; -webkit-app-region: no-drag; }
+.compact-header button:focus-visible { outline: 3px solid rgba(96,165,250,.45); outline-offset: 2px; }
+.compact-sessions { display: grid; gap: 7px; padding: 0 14px; }
+.session { padding: 11px; border: 1px solid #263a55; border-radius: 15px; background: #0b1728; text-align: center; }
+.hall { display: inline-block; padding: 6px 13px; border: 1px solid #fca5a5; border-radius: 999px; background: linear-gradient(#ff4d5f,#ef233c); font-size: 1rem; font-weight: 900; }
+.title { display: block; margin: 8px 0; font-size: 1rem; line-height: 1.25; overflow-wrap: anywhere; }
+.badges { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; }
+.badge { padding: 5px 11px; border: 1px solid #4c83c3; border-radius: 999px; background: #12315d; color: #93c5fd; font-weight: 900; }
+.badge.hall { border-color: #fca5a5; background: linear-gradient(180deg, #ff4d5f, #ef233c); color: #fff; box-shadow: 0 4px 14px rgba(239,35,60,.3); }
+.badge.format { border-color: #a45d36; background: #35201f; color: #ffb36b; }
+.compact-clock { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 11px 14px 14px; text-align: center; }
+.compact-clock span { display: block; color: #bfd3ea; font-size: .68rem; font-weight: 800; }
+.compact-clock strong { display: block; margin-top: 3px; color: #ffd166; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+#compactCountdown { color: #bef264; font-size: 2rem; }
+.compact-sessions.many-sessions {
+  display: block;
+  margin: 0 14px;
+  padding: 3px 12px;
+  border: 1px solid #263a55;
+  border-radius: 16px;
+  background: #0b1728;
+}
+.compact-sessions.many-sessions .session {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 2px;
+  border: 0;
+  border-bottom: 1px solid #263a55;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+.compact-sessions.many-sessions .session:last-child { border-bottom: 0; }
+.compact-sessions.many-sessions .title {
+  min-width: 0;
+  margin: 0;
+  font-size: clamp(.84rem, 3vw, 1rem);
+  text-align: left;
+}
+.compact-sessions.many-sessions .badges { justify-content: flex-end; gap: 4px; }
+.compact-sessions.many-sessions .badge { padding: 5px 8px; font-size: clamp(.76rem, 2.7vw, .9rem); }
+.compact-sessions.many-sessions .badge.hall { justify-self: center; }
+.compact-stop { display: block; width: calc(100% - 28px); margin: 0 14px 14px; padding: 10px; border: 0; border-radius: 12px; background: #ff6b18; color: #fff; cursor: pointer; font: inherit; font-weight: 900; }
+.compact-stop[hidden] { display: none; }
+.compact-card.alarm-mode { border-color: #ff6b18; box-shadow: inset 0 0 0 2px rgba(255,107,24,.22); }
+.compact-card.alarm-mode .compact-header > span { color: #ffb36b; }
+.empty { margin: 0; padding: 25px; border: 1px dashed #315d8d; border-radius: 15px; color: #bfd3ea; text-align: center; }
+
+/* 淺色小視窗保留白藍階層，格式、語言與紅色廳別仍使用既有識別色。 */
+body.light .compact-card { border-color: #bfdbfe; background: linear-gradient(145deg, #ffffff, #eaf3ff); color: #0f172a; box-shadow: none; }
+body.light .compact-header button { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
+body.light .session,
+body.light .compact-sessions.many-sessions { border-color: #cbd5e1; background: rgba(255,255,255,.88); }
+body.light .compact-sessions.many-sessions .session { background: transparent; }
+body.light .compact-sessions.many-sessions .session:not(:last-child) { border-bottom-color: #dbe5f1; }
+body.light .compact-clock span { color: #64748b; }
+body.light .compact-clock strong { color: #b45309; }
+body.light #compactCountdown { color: #3f7f1f; }
+body.light .empty { border-color: #93c5fd; color: #475569; }
+body.light .compact-card.alarm-mode { border-color: #f97316; box-shadow: inset 0 0 0 2px rgba(249,115,22,.18); }

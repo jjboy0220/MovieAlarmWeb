@@ -16,6 +16,6 @@ export function matchesSearch(session, searchText) {
   const query = normalizeSearchText(searchText);
   if (!query) return true;
 
-  return [session.title, session.displayTitle, session.hall, session.language, session.formatDisplay, session.format, ...getSessionFormats(session)]
+  return [session.title, session.originalTitle, session.chineseTitle, session.displayTitle, session.hall, session.language, session.formatDisplay, session.format, ...getSessionFormats(session)]
     .some(value => normalizeSearchText(value).includes(query));
 }

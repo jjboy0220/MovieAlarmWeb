@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Next Movie</title>
+  <link rel="stylesheet" href="compact.css">
+</head>
+<body>
+  <main id="compactCard" class="compact-card">
+    <header class="compact-header">
+      <strong id="compactDate">--</strong>
+      <span>NEXT MOVIE</span>
+      <button id="showFullButton" type="button" aria-label="回到完整視窗">完整視窗</button>
+    </header>
+    <section id="compactSessions" class="compact-sessions"><p class="empty">尚未匯入場次</p></section>
+    <section class="compact-clock">
+      <div><span>開演時間</span><strong id="compactTime">--:--</strong></div>
+      <div><span>距離開播</span><strong id="compactCountdown">00:00:00</strong></div>
+    </section>
+    <button id="stopAlarmButton" class="compact-stop" type="button" hidden>停止警報</button>
+  </main>
+  <script src="compactRenderer.js"></script>
+</body>
+</html>

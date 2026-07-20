@@ -1,0 +1,64 @@
+{
+  "name": "movie-schedule-alarm",
+  "productName": "Movie Schedule Alarm",
+  "version": "1.2.0",
+  "description": "Movie Schedule Alarm Windows Desktop",
+  "author": {
+    "name": "Jim Chang",
+    "email": "jim_chang@vscinemas.com.tw"
+  },
+  "main": "electron/main.cjs",
+  "private": true,
+  "scripts": {
+    "desktop": "electron .",
+    "build:portable": "electron-builder --win portable --x64",
+    "build:installer": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "43.1.1",
+    "electron-builder": "^26.0.12",
+    "xlsx": "0.18.5"
+  },
+  "build": {
+    "appId": "com.moviealarm.schedule",
+    "productName": "Movie Schedule Alarm",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "index.html",
+      "css/**/*",
+      "js/**/*",
+      "assets/**/*",
+      "vendor/xlsx/**/*",
+      "vendor/pdfjs/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/app-icon.png",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Movie-Schedule-Alarm-V1.2-Portable.${ext}"
+    },
+    "nsis": {
+      "artifactName": "Movie-Schedule-Alarm-V1.2-Setup.${ext}"
+    }
+  }
+}

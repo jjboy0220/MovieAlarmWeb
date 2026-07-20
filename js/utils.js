@@ -13,11 +13,6 @@ export function escapeHtml(value) {
   }[character]));
 }
 
-// 產生簡單且可辨識的前端暫用識別碼。
-export function createId(prefix = 'item') {
-  return `${prefix}-${Date.now().toString(36)}`;
-}
-
 // 將 UTC 日期物件轉為固定的 YYYY-MM-DD 日期鍵。
 export function formatDateKey(date) {
   const year = date.getUTCFullYear();
@@ -79,12 +74,15 @@ export function getSessionFormats(session) {
   return normalizeText(session?.format).split('/').map(normalizeText).filter(Boolean);
 }
 
-// 將格式陣列轉為穩定顯示文字；同時含 3D 與 DIG 時固定顯示為 3D / DIG。
+// 將格式陣列轉為穩定顯示文字；已知組合使用營運端約定的固定文字。
 export function formatFormatsForDisplay(formats) {
   const normalizedFormats = [...new Set((Array.isArray(formats) ? formats : []).map(normalizeText).filter(Boolean))];
   const hasThreeDAndDig = normalizedFormats.includes('3D') && normalizedFormats.includes('DIG');
-  const remainingFormats = normalizedFormats.filter(format => format !== '3D' && format !== 'DIG');
-  const displayFormats = hasThreeDAndDig ? [...remainingFormats, '3D / DIG'] : normalizedFormats;
+  const hasDigSpecial = normalizedFormats.includes('DIG') && normalizedFormats.includes('SPECIAL');
+  const remainingFormats = normalizedFormats.filter(format => format !== '3D' && format !== 'DIG' && format !== 'SPECIAL');
+  const displayFormats = hasThreeDAndDig
+    ? [...remainingFormats, ...(hasDigSpecial ? ['SPECIAL'] : []), '3D / DIG']
+    : hasDigSpecial ? [...remainingFormats, 'DIG SPECIAL'] : normalizedFormats;
   return displayFormats.join(' / ');
 }
 

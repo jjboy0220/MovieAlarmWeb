@@ -1,0 +1,63 @@
+/* 設定中心沿用既有白藍介面，所有設定控制項均使用目前主題變數。 */
+.settings-button { padding: 8px 12px; border: 1px solid var(--header-line); border-radius: 6px; background: var(--button-surface); color: var(--header-ink); cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
+.settings-button:hover { border-color: var(--primary-hover); color: var(--primary-hover); }
+.settings-button:focus-visible, .settings-close-button:focus-visible, .settings-form input:focus-visible, .settings-form select:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+body.settings-open { overflow: hidden; }
+.settings-modal { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: clamp(16px, 4vw, 40px); }
+.settings-modal[hidden] { display: none; }
+.settings-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .44); }
+.settings-dialog { position: relative; width: min(560px, 100%); max-height: min(760px, 100%); overflow-y: auto; padding: clamp(22px, 4vw, 36px); border: 1px solid var(--border-strong); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-card); color: var(--text-primary); }
+.settings-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 26px; }
+.settings-head .eyebrow { margin-bottom: 7px; }
+.settings-head h2 { margin: 0; font-size: clamp(1.55rem, 4vw, 2rem); }
+.settings-head p:last-child { margin: 8px 0 0; color: var(--text-secondary); font-size: .9rem; line-height: 1.55; }
+.settings-close-button { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 1px solid var(--border); border-radius: 50%; background: var(--surface-soft); color: var(--text-primary); cursor: pointer; font: inherit; font-size: 1.5rem; line-height: 1; }
+.settings-close-button:hover { border-color: var(--primary); color: var(--primary); }
+.settings-form { display: grid; gap: 16px; }
+.settings-field { display: grid; gap: 8px; color: var(--text-primary); font-weight: 800; }
+.settings-field select { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-soft); color: var(--text-primary); font: inherit; }
+.settings-voice-test { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); color: var(--text-primary); }
+.settings-voice-test > div { display: grid; grid-template-columns: minmax(100px, .45fr) 1fr; gap: 10px; }
+.settings-voice-test select, .settings-voice-test button { min-height: 40px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--button-surface); color: var(--text-primary); font: inherit; font-weight: 700; }
+.settings-voice-test button { cursor: pointer; }
+.settings-voice-test button:hover { border-color: var(--primary); color: var(--primary); }
+.settings-voice-test select:focus-visible, .settings-voice-test button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.settings-voice-test p { min-height: 1.2em; margin: 0; color: var(--text-muted); font-size: .82rem; }
+.settings-range-row { display: grid; grid-template-columns: minmax(0, 1fr) 62px; align-items: center; gap: 14px; }
+.settings-range-row input { width: 100%; accent-color: var(--primary); }
+.settings-range-row output { padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-blue); color: var(--primary-active); font-size: .86rem; font-variant-numeric: tabular-nums; text-align: center; }
+.settings-check { display: flex; align-items: flex-start; gap: 11px; padding: 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); cursor: pointer; }
+.settings-check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--primary); }
+.settings-check strong, .settings-check small { display: block; }
+.settings-check small { margin-top: 3px; color: var(--text-secondary); font-size: .82rem; font-weight: 400; line-height: 1.45; }
+.settings-notice { margin: 0; padding: 10px 12px; border: 1px solid #f59e0b; border-radius: 9px; background: rgba(245, 158, 11, .12); color: var(--text-primary); font-size: .88rem; font-weight: 700; }
+.settings-desktop-group { display: grid; gap: 10px; }
+.settings-desktop-group[hidden] { display: none; }
+.settings-inline-status { margin: -4px 0 4px; padding: 0 13px; color: var(--text-secondary); font-size: .82rem; line-height: 1.45; }
+.settings-dcp-group { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); }
+.settings-dcp-group .settings-inline-status { margin: 5px 0 0; padding: 0; white-space: pre-line; }
+.settings-dcp-actions, .settings-inline-confirm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.settings-dcp-actions button, .settings-inline-confirm button { min-height: 38px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--button-surface); color: var(--text-primary); cursor: pointer; font: inherit; font-size: .84rem; font-weight: 700; }
+.settings-dcp-actions button:hover, .settings-inline-confirm button:hover { border-color: var(--primary); color: var(--primary); }
+.settings-dcp-actions button:focus-visible, .settings-inline-confirm button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.settings-inline-confirm { padding: 10px; border-radius: 8px; background: var(--surface-blue); color: var(--text-primary); font-size: .84rem; }
+.settings-inline-confirm[hidden] { display: none; }
+.schedule-reminder-modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: clamp(16px, 4vw, 40px); }
+.schedule-reminder-modal[hidden] { display: none; }
+.schedule-reminder-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .58); }
+.schedule-reminder-dialog { position: relative; width: min(520px, 100%); padding: clamp(24px, 4vw, 38px); border: 1px solid var(--border-strong); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-card); color: var(--text-primary); }
+.schedule-reminder-dialog h2 { margin: 8px 0 12px; font-size: clamp(1.5rem, 4vw, 2rem); }
+.schedule-reminder-dialog > p:not(.eyebrow) { margin: 0; color: var(--text-secondary); line-height: 1.65; }
+.schedule-reminder-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.schedule-reminder-actions button { min-height: 42px; padding: 0 16px; border-radius: 9px; cursor: pointer; font: inherit; font-weight: 800; }
+.schedule-reminder-primary { border: 1px solid var(--primary); background: var(--primary); color: #fff; }
+.schedule-reminder-secondary { border: 1px solid var(--border); background: var(--surface-soft); color: var(--text-primary); }
+.schedule-reminder-actions button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .settings-button { width: 34px; padding: 7px; font-size: 0; }
+  .settings-button::before { content: '⚙'; font-size: 1rem; }
+  .settings-modal { align-items: end; padding: 10px; }
+  .settings-dialog { max-height: calc(100dvh - 20px); border-radius: 18px; }
+  .schedule-reminder-modal { align-items: end; padding: 10px; }
+  .schedule-reminder-dialog { border-radius: 18px; }
+}

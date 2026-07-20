@@ -7,6 +7,7 @@ import {
   getTraditionalChineseWeekday,
   normalizeText
 } from './utils.js';
+import { getOperationalDateForStart } from './scheduleCoverage.js';
 
 const REQUIRED_HEADERS = ['Screen', 'Start', 'Finish', 'Film Title'];
 const TIME_HEADERS = new Set(['Start', 'Finish']);
@@ -177,6 +178,7 @@ export function parseScheduleRows(rows) {
     if (isExcludedMovieTitle(film.title)) continue;
 
     const finishDate = finish < start ? addDaysToDate(currentDate, 1) : currentDate;
+    const operationalDate = getOperationalDateForStart(currentDate, start);
     movies.push({
       id: `row-${index + 1}-${currentDate}-${screen}-${start}`,
       sourceRow: index + 1,
@@ -184,6 +186,8 @@ export function parseScheduleRows(rows) {
       hall: parseHall(screen),
       date: currentDate,
       weekday: getTraditionalChineseWeekday(currentDate),
+      operationalDate,
+      operationalWeekday: getTraditionalChineseWeekday(operationalDate),
       start,
       finish,
       startDateTime: createDateTime(currentDate, start),

@@ -1,6 +1,6 @@
 import { escapeHtml, formatSessionFormats, getSessionFormats } from './utils.js';
 
-const FORMAT_BADGE_CLASSES = { DIG: 'dig', TITAN: 'titan', IMAX: 'imax', ATMOS: 'atmos', '4DX': 'fourdx', '3D': 'three-d' };
+const FORMAT_BADGE_CLASSES = { DIG: 'dig', TITAN: 'titan', IMAX: 'imax', ATMOS: 'atmos', '4DX': 'fourdx', '3D': 'three-d', LIVE: 'live', SPECIAL: 'special' };
 const LANGUAGE_BADGE_CLASSES = { CHI: 'chi', ENG: 'eng', JAN: 'jan' };
 
 // 將標準化格式名稱對應為白名單 CSS 類別，避免外部文字成為類別名稱。
@@ -23,16 +23,24 @@ function renderThreeDDigBadge() {
   return '<span class="format-badge three-d-dig">3D / DIG</span>';
 }
 
+// 將已確認的 DIG 與 SPECIAL 組合顯示為單一營運規格 Badge。
+function renderDigSpecialBadge() {
+  return '<span class="format-badge dig-special">DIG SPECIAL</span>';
+}
+
 // 將場次格式渲染為 Badge；3D 與 DIG 同時存在時固定合併為單一 Badge。
 export function renderFormatBadges(session) {
   const formats = getSessionFormats(session);
   if (!formats.length) return '';
 
   const hasThreeDAndDig = formats.includes('3D') && formats.includes('DIG');
-  const individualFormats = formats.filter(format => format !== '3D' && format !== 'DIG');
+  const hasDigSpecial = formats.includes('DIG') && formats.includes('SPECIAL');
+  const individualFormats = formats.filter(format => format !== '3D' && format !== 'DIG' && format !== 'SPECIAL');
   const badges = hasThreeDAndDig
-    ? [...individualFormats.map(renderSingleFormatBadge), renderThreeDDigBadge()]
-    : formats.map(renderSingleFormatBadge);
+    ? [...individualFormats.map(renderSingleFormatBadge), ...(hasDigSpecial ? [renderSingleFormatBadge('SPECIAL')] : []), renderThreeDDigBadge()]
+    : hasDigSpecial
+      ? [...individualFormats.map(renderSingleFormatBadge), renderDigSpecialBadge()]
+      : formats.map(renderSingleFormatBadge);
 
   return `<span class="format-badge-group" aria-label="${escapeHtml(formatSessionFormats(session))}">${badges.join('')}</span>`;
 }

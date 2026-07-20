@@ -1,10 +1,5 @@
 import { parseLocalDateTime } from './utils.js';
 
-// 為每個已解析場次建立預設 waiting 狀態，供首次渲染與後續時間判定使用。
-export function createWaitingSessions(sessions) {
-  return (Array.isArray(sessions) ? sessions : []).map(session => ({ ...session, status: 'waiting' }));
-}
-
 // 依完整開始日期時間回傳新的排序陣列，無效時間一律排在最後且不修改原始資料。
 export function sortSessionsByStart(sessions) {
   return (Array.isArray(sessions) ? sessions : [])
@@ -229,9 +224,4 @@ export function getNextMoviePresentationState(sessions, isImported, now = new Da
   }
 
   return { type: 'invalidTime', group: null, summary };
-}
-
-// 保留既有公開介面；真正的播放中場次顯示將由後續功能使用共用狀態函式實作。
-export function getCurrentMovie() {
-  return null;
 }

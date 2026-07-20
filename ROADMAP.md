@@ -1,13 +1,13 @@
-# Movie Schedule Alarm V1.0 開發路線圖
+# Movie Schedule Alarm V1.2 開發路線圖
 
 - 專案名稱：Movie Schedule Alarm
-- 目前版本：V1.0 開發中
+- 目前版本：V1.2 原始碼重建與回歸測試中
 - 專案位置：`D:\MovieAlarmWeb`
-- 技術：HTML、CSS、Vanilla JavaScript、SheetJS
-- 更新日期：2026-07-17
+- 技術：HTML、CSS、Vanilla JavaScript、SheetJS、PDF.js、Electron
+- 更新日期：2026-07-21
 - 文件用途：記錄功能進度、測試狀態與後續開發順序
 
-> `AGENTS.md` 定義專案應該如何開發、修改、測試與提交；`ROADMAP.md` 記錄專案目前完成到哪裡、下一步要做什麼，以及 V1.0 尚缺少哪些功能。
+> `AGENTS.md` 定義專案應該如何開發、修改、測試與提交；`ROADMAP.md` 記錄專案目前完成到哪裡、下一步要做什麼，以及 V1.2 尚缺少哪些驗證。
 
 ## 狀態圖例
 
@@ -20,7 +20,7 @@
 
 ## 目前進度說明
 
-Commit 1 至 Commit 5 與 UI 主題功能已完成實際人工測試，並整合為單一 V1.0 核心功能基準 Commit。後續工作從 Commit 6 的設定中心與 Commit 7 的正式發佈準備開始。
+V1.0 核心功能與 Windows Desktop Preview 2 曾完成實際人工測試。V1.2 原始程式已由既有安裝檔的 `app.asar` 重建回工作區，目前等待完整回歸測試後再準備 Commit 與正式發佈。
 
 ## ✅ Commit 1：Core Data Engine
 
@@ -145,20 +145,20 @@ Commit 1 至 Commit 5 與 UI 主題功能已完成實際人工測試，並整合
 - 全站仍只有一個 Ticker
 - Console 無錯誤
 
-## 下一階段
-
-## ⏳ Commit 6：Settings Center
+## 🧪 V1.2：Settings Center
 
 ### 目標
 
-- 警報音量設定
-- 警報音效選擇
-- 提前提醒分鐘數
-- 深色／淺色主題設定
-- 是否顯示偵錯面板
-- 設定儲存到 localStorage
-- 重新整理後保留一般設定
-- 音訊仍需由使用者重新點擊解鎖
+- 🧪 警報音量設定
+- 🧪 警報音效選擇
+- 🧪 提前提醒分鐘數
+- 🧪 深色／淺色主題設定
+- 🧪 是否顯示偵錯面板
+- 🧪 設定儲存到 localStorage
+- 🧪 重新整理後保留一般設定
+- 🧪 音訊仍需由使用者重新點擊解鎖
+
+設定中心已包含警報音量、預設警報／廳別語音／靜音、提前提醒、主題、偵錯面板、開機啟動、每日匯入提醒及 DCP 中文片名資料，等待桌面版完整人工測試後才可標示為 ✅。
 
 ### 驗收條件
 
@@ -169,7 +169,19 @@ Commit 1 至 Commit 5 與 UI 主題功能已完成實際人工測試，並整合
 - 不建立第二個 Audio、State 或 Ticker
 - 警報音訊解鎖狀態不寫入 localStorage
 
-## ⏳ Commit 7：Performance & V1.0 Release
+## 🧪 V1.2：Desktop、PDF 與本機資料
+
+- 🧪 Electron Main Process 背景警報
+- 🧪 Windows 系統匣與精簡監控視窗
+- 🧪 開機自動啟動
+- 🧪 Windows 原生場次提醒
+- 🧪 PDF 場次表離線匯入
+- 🧪 DCP 中文片名工作表匯入與本機保存
+- 🧪 最近成功場次快照保存與恢復
+- 🧪 廳別語音警報
+- 🧪 營運日跨午夜與場次涵蓋提醒
+
+## ⏳ V1.2 Release Verification
 
 ### 目標
 
@@ -186,45 +198,40 @@ Commit 1 至 Commit 5 與 UI 主題功能已完成實際人工測試，並整合
 - 完整測試深色／淺色模式
 - 更新 `README.md`
 - 建立 `CHANGELOG.md`
-- 建立 V1.0 測試清單
-- 準備 `v1.0.0` Release
+- 建立 V1.2 測試清單
+- 比對重建版與既有 `Movie-Schedule-Alarm-V1.2-Setup.exe`
+- 準備 `v1.2.0` Release
 
 ### 驗收條件
 
 - 無 Console Error
 - 無未處理 Promise Error
-- 不依賴 Node.js 或 npm
-- 可使用 Live Server 執行
+- 一般使用者不依賴 Node.js 或 npm
+- 瀏覽器核心可使用本機 HTTP Server 執行
+- Electron Installer 與 Portable 可成功建置
 - 主要功能可離線使用
 - Git 工作區乾淨
 - 已推送到 `origin/main`
 
-## ⛔ V1.0 暫不開發
+## ⛔ V1.2 暫不開發
 
 - ⛔ TMDB API
-- ⛔ 自動抓取中文片名
+- ⛔ 從外部服務自動抓取中文片名
 - ⛔ 電影海報
-- ⛔ Electron 桌面版
 - ⛔ Windows 系統音量強制最大
 - ⛔ SQLite
-- ⛔ Node.js
-- ⛔ npm
 - ⛔ React、Vue、Angular
 - ⛔ 雲端資料庫
 - ⛔ 多使用者登入
 
-上述功能可於 V2.0 或後續版本重新評估。
+上述功能可於後續版本重新評估。
 
 ## 未來版本
 
-## ⏳ V2.0：Windows Desktop
+## ⏳ 後續桌面功能
 
 可考慮：
 
-- Electron 桌面版
-- Windows 通知
-- 工作列圖示
-- 開機啟動
 - 更穩定的音效控制
 - 本機設定檔
 - 系統 Log
