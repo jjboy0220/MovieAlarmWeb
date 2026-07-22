@@ -19,6 +19,10 @@ node_modules/
 release/
 dist/
 .analysis/
+iphone-tc/node_modules/
+iphone-tc/www/
+iphone-tc/ios/
+iphone-tc/build/
 
 # 本機環境設定
 .env

@@ -1,0 +1,72 @@
+name: TC iPhone Build Check
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "iphone-tc/**"
+      - "index.html"
+      - "assets/**"
+      - "css/**"
+      - "js/**"
+      - "vendor/**"
+      - "cinemas/TC/**"
+      - ".github/workflows/ios-tc-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: iphone-tc
+
+    steps:
+      - name: 取得原始碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 安裝 Capacitor
+        run: npm ci --no-audit --no-fund
+
+      - name: 產生 TC 網頁資產
+        run: npm run build:web
+
+      - name: 產生 iOS 專案
+        run: npx cap add ios
+
+      - name: 同步 iOS 專案
+        run: npx cap sync ios
+
+      - name: 套用 TC App 圖示
+        run: >-
+          sips
+          -z 1024 1024
+          ../assets/app-icon.png
+          --out ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+
+      - name: 編譯 iPhone Simulator App
+        run: >-
+          xcodebuild
+          -project ios/App/App.xcodeproj
+          -scheme App
+          -configuration Debug
+          -sdk iphonesimulator
+          -derivedDataPath build
+          CODE_SIGNING_ALLOWED=NO
+          build
+
+      - name: 上傳未簽章編譯成果
+        uses: actions/upload-artifact@v4
+        with:
+          name: TC-iPhone-Simulator-App
+          path: iphone-tc/build/Build/Products/Debug-iphonesimulator/App.app
+          if-no-files-found: error
+          retention-days: 7

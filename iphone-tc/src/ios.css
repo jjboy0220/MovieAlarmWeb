@@ -1,0 +1,51 @@
+/* iPhone 安全區與觸控尺寸只作用於 Capacitor 產物，不影響 Windows 版本。 */
+html {
+  background: #071426;
+  overscroll-behavior: none;
+}
+
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+button,
+select,
+input,
+.file-button {
+  min-height: 44px;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (max-width: 720px) {
+  header {
+    position: sticky;
+    top: env(safe-area-inset-top);
+  }
+
+  .top-actions,
+  .controls {
+    width: 100%;
+  }
+
+  .file-button,
+  .settings-button,
+  .theme-button,
+  .alarm-control,
+  .alarm-toggle {
+    width: 100%;
+  }
+
+  .settings-dialog {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
+  }
+}

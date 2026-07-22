@@ -1,0 +1,10 @@
+{
+  "appId": "com.jimchang.moviealarm.tc",
+  "appName": "(TC) Movie Schedule Alarm",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#071426",
+    "preferredContentMode": "mobile"
+  }
+}
