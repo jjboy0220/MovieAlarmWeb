@@ -1,14 +1,8 @@
+import { CINEMA_CONFIG } from './config.js';
+
 const ALARM_AUDIO_SOURCE = 'assets/alarm.wav';
-const HALL_AUDIO_SOURCES = Object.freeze({
-  C1: 'assets/hall-voice/c1.mp3', C2: 'assets/hall-voice/c2.mp3', C3: 'assets/hall-voice/c3.mp3',
-  C5: 'assets/hall-voice/c5.mp3', C6: 'assets/hall-voice/c6.mp3', C7: 'assets/hall-voice/c7.mp3',
-  C8: 'assets/hall-voice/c8.mp3', C9: 'assets/hall-voice/c9.mp3',
-  GC1: 'assets/hall-voice/gc1.mp3', GC2: 'assets/hall-voice/gc2.mp3'
-});
-const HALL_ANNOUNCEMENTS = Object.freeze({
-  C1: '一廳，開播。', C2: '二廳，開播。', C3: '三廳，開播。', C5: '五廳，開播。', C6: '六廳，開播。',
-  C7: '七廳，開播。', C8: '八廳，開播。', C9: '九廳，開播。', GC1: 'GC 一廳，開播。', GC2: 'GC 二廳，開播。'
-});
+const HALL_AUDIO_SOURCES = Object.freeze(CINEMA_CONFIG.hallAudioSources);
+const HALL_ANNOUNCEMENTS = Object.freeze(CINEMA_CONFIG.hallAnnouncements);
 let sharedAlarmChannel = null;
 
 // 將瀏覽器拒絕播放的情況轉為可直接顯示的繁體中文提示。

@@ -109,6 +109,10 @@
   --badge-atmos-ink: #fcd34d;
   --badge-atmos-border: rgba(252, 211, 77, .45);
   --badge-atmos-hover: rgba(217, 119, 6, .28);
+  --badge-ctrl-bg: rgba(190, 242, 100, .22);
+  --badge-ctrl-ink: #d9f99d;
+  --badge-ctrl-border: rgba(190, 242, 100, .72);
+  --badge-ctrl-hover: rgba(132, 204, 22, .34);
   --badge-fourdx-bg: rgba(21, 128, 61, .18);
   --badge-fourdx-ink: #86efac;
   --badge-fourdx-border: rgba(134, 239, 172, .42);
@@ -290,6 +294,10 @@ body.light {
   --badge-atmos-ink: #d97706;
   --badge-atmos-border: #fcd34d;
   --badge-atmos-hover: #fde68a;
+  --badge-ctrl-bg: #ecfccb;
+  --badge-ctrl-ink: #3f6212;
+  --badge-ctrl-border: #a3e635;
+  --badge-ctrl-hover: #d9f99d;
   --badge-fourdx-bg: #dcfce7;
   --badge-fourdx-ink: #15803d;
   --badge-fourdx-border: #86efac;

@@ -1,6 +1,6 @@
 import { escapeHtml, formatSessionFormats, getSessionFormats } from './utils.js';
 
-const FORMAT_BADGE_CLASSES = { DIG: 'dig', TITAN: 'titan', IMAX: 'imax', ATMOS: 'atmos', '4DX': 'fourdx', '3D': 'three-d', LIVE: 'live', SPECIAL: 'special' };
+const FORMAT_BADGE_CLASSES = { DIG: 'dig', TITAN: 'titan', IMAX: 'imax', ATMOS: 'atmos', CTRL: 'ctrl', '4DX': 'fourdx', '3D': 'three-d', LIVE: 'live', SPECIAL: 'special' };
 const LANGUAGE_BADGE_CLASSES = { CHI: 'chi', ENG: 'eng', JAN: 'jan' };
 
 // 將標準化格式名稱對應為白名單 CSS 類別，避免外部文字成為類別名稱。

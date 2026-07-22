@@ -3,7 +3,10 @@ const { app, BrowserWindow, Menu, Notification, Tray, dialog, ipcMain, powerMoni
 const { createAlarmCoordinator } = require('./alarmCoordinator.cjs');
 const { createSystemVolumeBridge } = require('./systemVolumeBridge.cjs');
 
-const WINDOWS_APP_USER_MODEL_ID = 'com.moviealarm.schedule';
+const packageMetadata = require('../package.json');
+const CINEMA_CODE = String(packageMetadata.cinemaCode || process.argv.find(argument => argument.startsWith('--cinema='))?.split('=')[1] || 'TC').toUpperCase() === 'MM' ? 'MM' : 'TC';
+const WINDOWS_APP_USER_MODEL_ID = packageMetadata.desktopAppId || (CINEMA_CODE === 'MM' ? 'com.moviealarm.schedule.mm' : 'com.moviealarm.schedule');
+const DESKTOP_PRODUCT_NAME = packageMetadata.productName || 'Movie Schedule Alarm';
 
 let mainWindow = null;
 let compactWindow = null;
@@ -62,7 +65,7 @@ function refreshTrayMenu() {
 function createTray() {
   if (tray) return;
   tray = new Tray(path.join(__dirname, '..', 'assets', 'app-icon.png'));
-  tray.setToolTip('Movie Schedule Alarm');
+  tray.setToolTip(DESKTOP_PRODUCT_NAME);
   refreshTrayMenu();
   tray.on('double-click', focusExistingMainWindow);
 }
@@ -265,7 +268,7 @@ function bindDesktopScheduleReminderIpc() {
         : '尚未匯入今日場次表，請開啟程式並上傳當日場次。';
       const notificationKind = options?.kind === 'coverage-exhausted' ? 'coverage-exhausted' : 'daily-missing';
       const notification = new Notification({
-        title: 'Movie Schedule Alarm',
+        title: DESKTOP_PRODUCT_NAME,
         body: notificationBody
       });
       activeScheduleNotification = notification;
@@ -369,7 +372,7 @@ function bindDesktopWindowIpc() {
 // 建立唯一桌面視窗，並以安全的相對路徑載入既有網站入口。
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    title: 'Movie Schedule Alarm V1.2',
+    title: `${DESKTOP_PRODUCT_NAME} V${app.getVersion()}`,
     width: 1440,
     height: 900,
     minWidth: 1100,
@@ -460,7 +463,7 @@ function createMainWindow() {
     mainWindow = null;
   });
 
-  void mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
+  void mainWindow.loadFile(path.join(__dirname, '..', 'index.html'), { query: { cinema: CINEMA_CODE } });
 }
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();

@@ -1,4 +1,5 @@
 import { renderFormatBadges, renderHallBadge, renderLanguageBadge } from './badgeRenderer.js';
+import { CINEMA_CODE, FORMATS, HALLS, MONITOR_TITLE, VERSION } from './config.js';
 import { escapeHtml, formatCompactChineseDate } from './utils.js';
 
 let renderedGroupKey = '';
@@ -413,6 +414,19 @@ export function updateSettingsNotice(message) {
   const notice = $('#settingsStorageNotice');
   notice.textContent = message || '';
   notice.hidden = !message;
+}
+
+// 依目前館別設定建立規格篩選與語音測試選項，避免 MM 顯示 TC 的 GC 廳資訊。
+export function configureCinemaUi() {
+  const formatFilter = $('#formatFilter');
+  formatFilter.replaceChildren(new Option('所有規格', 'ALL'), ...FORMATS.map(format => new Option(format, format)));
+  const hallVoiceSelect = $('#hallVoiceTestSelect');
+  hallVoiceSelect.replaceChildren(new Option('預設警報聲', 'DEFAULT_ALARM'), ...HALLS.map(hall => new Option(hall, hall)));
+  document.documentElement.dataset.cinema = CINEMA_CODE;
+  const brandVersion = document.querySelector('.brand small');
+  if (brandVersion) brandVersion.textContent = `${CINEMA_CODE} V${VERSION.replace(/\.0$/, '')}`;
+  const monitorTitle = $('#monitorTitle');
+  if (monitorTitle) monitorTitle.textContent = MONITOR_TITLE;
 }
 
 // 綁定設定中心開關與控制項；所有設定變更只回傳給 app.js 更新集中 state。

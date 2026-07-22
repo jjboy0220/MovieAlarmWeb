@@ -93,6 +93,8 @@ npm run build:portable
 npm run build:installer
 ```
 
+館別安裝檔採共用核心與獨立設定：`cinemas/TC` 保存 TC V1.0 的 GC 廳與建置規則，`cinemas/MM` 保存 MM V1.0 的數字廳、ATMOS／CTRL 與獨立應用程式識別。分別執行 `npm run build:tc`、`npm run build:mm`，輸出位於 `release/TC`、`release/MM`，兩個安裝版本可並存且不互相覆蓋。
+
 `npm run desktop` 啟動 Electron 開發版；`npm run build:portable` 建立 Windows x64 免安裝版，`npm run build:installer` 建立 Windows x64 NSIS 安裝程式。
 
 ### V1.2 功能
@@ -109,7 +111,7 @@ npm run build:installer
 - 提供預設警報、廳別語音與靜音視覺提醒。
 - 停止警報後取消強制置頂。
 
-V1.2 的免安裝版檔名為 `Movie-Schedule-Alarm-V1.2-Portable.exe`，TC 影城的 NSIS 安裝程式檔名為 `(TC)Movie-Schedule-Alarm-V1.2-Setup.exe`；括號內代號用來區分不同影城規範的版本。
+共用核心的免安裝版檔名維持 `Movie-Schedule-Alarm-V1.2-Portable.exe`；TC 影城的 NSIS 安裝程式檔名為 `(TC)Movie-Schedule-Alarm-V1.0-Setup.exe`，MM 影城則為 `(MM)Movie-Schedule-Alarm-V1.0-Setup.exe`。
 
 ### SheetJS 離線支援
 

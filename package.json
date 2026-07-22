@@ -11,8 +11,11 @@
   "private": true,
   "scripts": {
     "desktop": "electron .",
+    "desktop:mm": "electron . --cinema=MM",
     "build:portable": "electron-builder --win portable --x64",
-    "build:installer": "electron-builder --win nsis --x64"
+    "build:installer": "electron-builder --config cinemas/TC/electron-builder.cjs --win nsis --x64",
+    "build:tc": "electron-builder --config cinemas/TC/electron-builder.cjs --win nsis --x64",
+    "build:mm": "electron-builder --config cinemas/MM/electron-builder.cjs --win nsis --x64"
   },
   "devDependencies": {
     "electron": "43.1.1",
@@ -32,6 +35,7 @@
     },
     "files": [
       "electron/**/*",
+      "cinemas/**/*",
       "index.html",
       "css/**/*",
       "js/**/*",
@@ -41,19 +45,15 @@
       "package.json"
     ],
     "win": {
-      "icon": "assets/app-icon.png",
+      "icon": "build/app-icon.ico",
       "target": [
         {
           "target": "portable",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         },
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ]
     },
@@ -61,7 +61,7 @@
       "artifactName": "Movie-Schedule-Alarm-V1.2-Portable.${ext}"
     },
     "nsis": {
-      "artifactName": "(TC)Movie-Schedule-Alarm-V1.2-Setup.${ext}"
+      "artifactName": "(TC)Movie-Schedule-Alarm-V1.0-Setup.${ext}"
     }
   }
 }

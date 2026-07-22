@@ -1,7 +1,20 @@
-// 集中保留應用程式名稱、版本與可辨識的放映規格。
+const requestedCinemaCode = new URLSearchParams(globalThis.location?.search || '').get('cinema')?.toUpperCase() || 'TC';
+const isMmCinema = requestedCinemaCode === 'MM';
+const selectedCinemaModule = isMmCinema
+  ? await import('../cinemas/MM/config.js')
+  : await import('../cinemas/TC/config.js');
+
+// 只載入 Electron 傳入或瀏覽器查詢參數指定的館別設定，未知代號安全回到 TC。
+export const CINEMA_CONFIG = isMmCinema ? selectedCinemaModule.MM_CINEMA_CONFIG : selectedCinemaModule.TC_CINEMA_CONFIG;
+
+// 集中保留應用程式名稱、館別版本、廳別與可辨識的放映規格。
 export const APP_NAME = 'Movie Schedule Alarm';
-export const VERSION = '1.2.0';
-export const FORMATS = ['DIG', 'TITAN', 'IMAX', 'ATMOS', '4DX', '3D', 'LIVE', 'SPECIAL'];
+export const APP_DISPLAY_NAME = CINEMA_CONFIG.appDisplayName;
+export const CINEMA_CODE = CINEMA_CONFIG.code;
+export const MONITOR_TITLE = CINEMA_CONFIG.monitorTitle;
+export const VERSION = CINEMA_CONFIG.version;
+export const HALLS = CINEMA_CONFIG.halls;
+export const FORMATS = CINEMA_CONFIG.formats;
 export const LANGUAGE_MAP = { C: 'CHI', E: 'ENG', J: 'JAN' };
 
 // 可自行調整的排除片名關鍵字；符合任一關鍵字的場次不會進入應用程式資料流。

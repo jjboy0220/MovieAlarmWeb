@@ -1,4 +1,4 @@
-import { APP_NAME, VERSION } from './config.js';
+import { APP_DISPLAY_NAME, VERSION } from './config.js';
 import { hasStoredStartupPreference, loadSettings, normalizeSettings, saveSettings } from './settings.js';
 import { readExcel } from './excelReader.js';
 import { readPdfSchedule } from './pdfScheduleReader.js';
@@ -6,7 +6,7 @@ import { createSessionGroupKey, getLatestUntriggeredSessionGroup, getNextMoviePr
 import { formatCountdown, getCountdownSeconds, getCountdownTickerStatus, startCountdownTicker } from './countdown.js';
 import { createAlarmChannel } from './alarm.js';
 import { getScheduleDebugInfo } from './debug.js';
-import { applyTheme, bindAlarmControls, bindCompactWindowControls, bindDailyImportReminder, bindDcpTitleControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, hideAlarmModal, hideDailyImportReminder, showDailyImportReminder, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateCompactWindowMode, updateDcpTitleStatus, updateDebugPanel, updateFileStatus, updateHallVoiceTestStatus, updateNextMovieCard, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
+import { applyTheme, bindAlarmControls, bindCompactWindowControls, bindDailyImportReminder, bindDcpTitleControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, configureCinemaUi, hideAlarmModal, hideDailyImportReminder, showDailyImportReminder, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateCompactWindowMode, updateDcpTitleStatus, updateDebugPanel, updateFileStatus, updateHallVoiceTestStatus, updateNextMovieCard, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
 import { createEmptyTable, renderMovieRows } from './table.js';
 import { bindSearch, matchesSearch } from './search.js';
 import { bindFilters, matchesFilters, populateDateFilterOptions, populateFilterOptions } from './filter.js';
@@ -925,7 +925,8 @@ function bindVisibilityRefresh() {
 
 // 初始化事件與唯一倒數計時器，重新匯入、搜尋、篩選與警報控制皆不會建立額外 interval。
 function init() {
-  document.title = `${APP_NAME} V${VERSION}`;
+  document.title = `${APP_DISPLAY_NAME} V${VERSION}`;
+  configureCinemaUi();
   updateSettings({}, false);
   restoreStoredSchedule();
   if (desktopAlarm) alarmChannel.enableAlarm(state.settings);
