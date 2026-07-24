@@ -21,6 +21,7 @@
 - Electron（Windows 桌面封裝）
 - Node.js 與 npm（僅限開發、測試與建置）
 - Capacitor（僅限 `iphone-tc` 的 iOS 封裝）
+- PWA 與 Service Worker（僅限 `iphone-tc` 的免簽章行動版）
 
 除非使用者未來明確要求，禁止使用：
 
@@ -372,6 +373,7 @@ Badge 色彩是格式與語言識別的限定例外，不得延伸為全站主�
 - DCP 中文片名對照必須維持獨立 Reader、Storage 與 Map 模組，且不得變更 Excel Parser 的欄位偵測邏輯。
 - 若未來需求與本文件衝突，以使用者最新明確需求為優先；不得自行擴張解讀。
 - `iphone-tc` 是 TC 專用 iOS 子專案，只能由既有共用網頁核心產生 `www`，不得複製或分叉第二套 Parser、集中 state、Countdown、Alarm 或 Statistics 原始碼。
+- `iphone-tc` 同時負責 TC PWA；Manifest、Service Worker 與 GitHub Pages 只能封裝產生後的共用網頁核心，不得另建第三套應用程式。
 - iOS 版不得聲稱能控制 iPhone 系統音量；背景提醒應改用 iOS 本機通知，且簽章、TestFlight 與實機安裝必須在 Apple 核准的建置環境完成。
 
 # End of AGENTS.md
