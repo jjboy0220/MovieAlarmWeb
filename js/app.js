@@ -832,6 +832,14 @@ function applyImportedSessions({ sessions, sourceType, sourceFileName, sourceLab
     ? `PDF 場次表匯入成功，共載入 ${state.sessions.length} 個場次`
     : getImportedStatus(sourceFileName, sourceLabel, state.sessions.length, importedTime);
   updateFileStatus(successMessage);
+  if (sourceType === 'pdf') {
+    document.dispatchEvent(new CustomEvent('movie-schedule:pdf-imported', {
+      detail: {
+        fileName: sourceFileName,
+        reportVersionTime: metadata.reportVersionTime || ''
+      }
+    }));
+  }
   if (hasTodaySchedule(state.sessions, importedAt)) {
     state.dailyReminderDebug.hasTodaySchedule = true;
     completeDailyScheduleReminder();

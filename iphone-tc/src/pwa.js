@@ -1,5 +1,54 @@
 const INSTALL_GUIDE_DISMISSED_KEY = 'tcPwa.installGuideDismissed.v1';
 
+// 建立 TC 手機版專用的 PDF 匯入摘要，不改動共用桌面版標記。
+function createPdfImportSummary() {
+  const pdfInput = document.querySelector('#pdfFileInput');
+  const pdfButton = pdfInput?.closest('.file-button');
+  if (!pdfButton) return;
+
+  document.body.classList.add('tc-mobile-pwa');
+  pdfButton.querySelector('span').textContent = '上傳 PDF 場次表';
+  pdfButton.setAttribute('aria-label', '上傳 PDF 場次表');
+  pdfButton.setAttribute('title', '上傳 PDF 場次表');
+
+  const excelInput = document.querySelector('#fileInput');
+  excelInput?.closest('.file-button')?.classList.add('tc-mobile-hidden');
+
+  const summary = document.createElement('section');
+  summary.className = 'mobile-import-summary';
+  summary.setAttribute('aria-label', 'PDF 場次表資訊');
+
+  const details = document.createElement('div');
+  details.className = 'mobile-import-details';
+
+  const label = document.createElement('span');
+  label.className = 'mobile-import-label';
+  label.textContent = '已匯入檔案';
+
+  const fileName = document.createElement('strong');
+  fileName.id = 'mobileImportedFileName';
+  fileName.textContent = '尚未選擇 PDF 場次表';
+
+  const versionLabel = document.createElement('span');
+  versionLabel.className = 'mobile-import-label';
+  versionLabel.textContent = 'PDF 版本時間';
+
+  const versionTime = document.createElement('time');
+  versionTime.id = 'mobilePdfVersionTime';
+  versionTime.textContent = '—';
+
+  details.append(label, fileName, versionLabel, versionTime);
+  summary.append(pdfButton, details);
+  document.querySelector('.layout')?.insertBefore(summary, document.querySelector('#nextMovieCard'));
+
+  document.addEventListener('movie-schedule:pdf-imported', event => {
+    const detail = event.detail || {};
+    fileName.textContent = detail.fileName || '未提供檔名';
+    versionTime.textContent = detail.reportVersionTime || 'PDF 未辨識到版本時間';
+    versionTime.dateTime = detail.reportVersionTime?.replace(' ', 'T').replaceAll('/', '-') || '';
+  });
+}
+
 // 判斷目前是否位於 Capacitor 原生容器，避免顯示只適用 Safari 的 PWA 安裝提示。
 function isNativeContainer() {
   return globalThis.Capacitor?.isNativePlatform?.() === true;
@@ -49,5 +98,6 @@ async function registerServiceWorker() {
   }
 }
 
+createPdfImportSummary();
 showInstallGuide();
 void registerServiceWorker();

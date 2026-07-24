@@ -10,6 +10,46 @@ const REQUIRED_HEADERS = ['Screen', 'Start', 'Finish', 'Status', 'Film Title'];
 const VALID_SOURCE_STATUSES = new Set(['OPEN', 'PLANNED', 'CLOSED']);
 const PDF_WORKER_URL = new URL('../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 
+// 將 PDF 頁尾常見的美式日期時間轉為手機版統一顯示格式。
+export function parsePdfReportVersionTime(value) {
+  const match = normalizeText(value).match(/(?:^|\s)(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})(?:\s|$)/);
+  if (!match) return '';
+  const [, monthText, dayText, yearText, hourText, minuteText, secondText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText);
+  const candidate = new Date(year, month - 1, day, hour, minute, second);
+  if (
+    candidate.getFullYear() !== year
+    || candidate.getMonth() !== month - 1
+    || candidate.getDate() !== day
+    || hour > 23
+    || minute > 59
+    || second > 59
+  ) return '';
+  return `${yearText}/${monthText.padStart(2, '0')}/${dayText.padStart(2, '0')} ${hourText.padStart(2, '0')}:${minuteText}:${secondText}`;
+}
+
+// 從各頁右下方文字列尋找報表產生時間，並以最後一頁可辨識的值為準。
+export function findPdfReportVersionTime(pages) {
+  let reportVersionTime = '';
+  for (const page of Array.isArray(pages) ? pages : []) {
+    const bottomRows = [...page.rows].sort((a, b) => a.y - b.y);
+    for (const row of bottomRows) {
+      const rowText = row.items.map(item => item.str).join(' ');
+      const parsed = parsePdfReportVersionTime(rowText);
+      if (parsed) {
+        reportVersionTime = parsed;
+        break;
+      }
+    }
+  }
+  return reportVersionTime;
+}
+
 // 延遲載入本機 PDF.js 並指定同版本 Worker，避免瀏覽器或 Electron 連線外部 CDN。
 async function loadPdfJs() {
   const pdfjs = await import('../vendor/pdfjs/pdf.min.mjs');
@@ -284,6 +324,7 @@ export async function readPdfSchedule(file) {
     metadata: {
       pageCount: extracted.pageCount,
       textItemCount: extracted.textItemCount,
+      reportVersionTime: findPdfReportVersionTime(extracted.pages),
       ...parsed.metadata
     }
   };
