@@ -41,6 +41,7 @@ function createAlarmCoordinator({ getMainWindow, screen, sendTriggered }) {
   let scheduledAlarm = null;
   let scheduledTimer = null;
   let currentGeneration = null;
+  let sessionLocked = false;
   const handledGroupKeys = new Set();
   const debugState = {
     desktopAlarmScheduled: false,
@@ -66,6 +67,8 @@ function createAlarmCoordinator({ getMainWindow, screen, sendTriggered }) {
     alwaysOnTopActive: false,
     flashFrameActive: false,
     lastResumeCheckAt: null,
+    sessionLocked: false,
+    alarmDeferredUntilUnlock: false,
     missedAlarmDetected: false,
     ipcScheduleError: ''
   };
@@ -138,6 +141,11 @@ function createAlarmCoordinator({ getMainWindow, screen, sendTriggered }) {
   function triggerScheduledAlarm(missedAlarmDetected = false) {
     const alarm = scheduledAlarm;
     if (!alarm || handledGroupKeys.has(alarm.groupKey)) return;
+    if (sessionLocked) {
+      clearScheduledTimer();
+      debugState.alarmDeferredUntilUnlock = true;
+      return;
+    }
 
     clearScheduledTimer();
     scheduledAlarm = null;
@@ -148,6 +156,7 @@ function createAlarmCoordinator({ getMainWindow, screen, sendTriggered }) {
     const triggerTimestamp = alarm.startTimestamp - alarm.leadMinutes * 60_000;
     debugState.mainTimerDelayMs = debugState.mainTimerFiredAt - triggerTimestamp;
     debugState.missedAlarmDetected = Boolean(missedAlarmDetected);
+    debugState.alarmDeferredUntilUnlock = false;
 
     const windowWoken = alarm.alarmEnabled ? wakeMainWindow() : false;
     debugState.ipcTriggerSentAt = Date.now();
@@ -250,11 +259,34 @@ function createAlarmCoordinator({ getMainWindow, screen, sendTriggered }) {
   // 睡眠恢復或解鎖後立即用 Date.now 重新檢查，只觸發目前最近的單一排程。
   function checkAfterResume() {
     debugState.lastResumeCheckAt = Date.now();
+    if (sessionLocked) return getDebugState();
     if (!scheduledAlarm) return getDebugState();
     const triggerTimestamp = scheduledAlarm.startTimestamp - scheduledAlarm.leadMinutes * 60_000;
     if (Date.now() >= triggerTimestamp) triggerScheduledAlarm(true);
     else armScheduledAlarm();
     return getDebugState();
+  }
+
+  // Windows 鎖定或切換使用者時暫停排程與視窗提醒，但保留尚未處理的群組供解鎖後補響。
+  function handleSessionLock() {
+    sessionLocked = true;
+    debugState.sessionLocked = true;
+    clearScheduledTimer();
+    const window = getMainWindow();
+    if (window && !window.isDestroyed()) {
+      window.flashFrame(false);
+      window.setAlwaysOnTop(false);
+    }
+    debugState.alwaysOnTopActive = false;
+    debugState.flashFrameActive = false;
+    return getDebugState();
+  }
+
+  // Windows 解鎖後恢復排程；鎖定期間已到點時只補目前保留的單一群組。
+  function handleSessionUnlock() {
+    sessionLocked = false;
+    debugState.sessionLocked = false;
+    return checkAfterResume();
   }
 
   // Renderer 完成載入後補送 pending Trigger 時，回寫同一份 Main Process 診斷狀態。
@@ -266,7 +298,7 @@ function createAlarmCoordinator({ getMainWindow, screen, sendTriggered }) {
     return getDebugState();
   }
 
-  return { schedule, cancel, acknowledge, checkAfterResume, recordIpcSend, getDebugState };
+  return { schedule, cancel, acknowledge, checkAfterResume, handleSessionLock, handleSessionUnlock, recordIpcSend, getDebugState };
 }
 
 module.exports = { createAlarmCoordinator, validateSchedulePayload };

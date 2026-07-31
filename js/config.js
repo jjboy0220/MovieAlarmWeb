@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   alarmVolume: 1,
   alarmSoundMode: 'HALL_VOICE',
   alarmLeadMinutes: 0,
+  alarmAutoDismissEnabled: false,
   startupEnabled: true,
   dailyImportReminderEnabled: true
 });

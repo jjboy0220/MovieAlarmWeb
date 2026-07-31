@@ -1,4 +1,4 @@
-# Movie Schedule Alarm V1.2 Developer Guide
+# Movie Schedule Alarm V2.0 Developer Guide
 
 本文件是 Movie Schedule Alarm 專案唯一且永久的開發規範。每次開始任何開發工作前，都必須優先完整閱讀本文件；所有新功能、修改、測試與 Commit 都必須依照本文件執行。
 
@@ -7,7 +7,7 @@
 ## 一、Project Information
 
 - 專案名稱：Movie Schedule Alarm
-- 版本：V1.2
+- 版本：V2.0
 - 用途：影城營運場次管理工具
 - 固定工作區：`D:\vscode\MovieAlarmWeb`
 
@@ -33,9 +33,9 @@
 
 網站核心必須能以本機 HTTP Server 執行；Windows 桌面版使用 Electron 封裝相同的 HTML、CSS 與 Vanilla JavaScript 模組。一般使用者不需要安裝 Node.js 或 npm。
 
-V1.2 的電影資料處理完全離線，場次可由 Excel 或 PDF 匯入。英文片名以場次表解析結果為準；使用者可另外匯入本機 DCP 工作表建立中文片名對照。不可呼叫外部電影 metadata API、海報 API，也不可建立 Token 或背景 metadata 載入流程。
+V2.0 的電影資料處理完全離線，場次可由 Excel 或 PDF 匯入。英文片名以場次表解析結果為準；使用者可另外匯入本機 DCP 工作表建立中文片名對照。不可呼叫外部電影 metadata API、海報 API，也不可建立 Token 或背景 metadata 載入流程。
 
-V1.2 不顯示電影海報，不可建立海報容器、海報資產、海報載入狀態、圖片錯誤處理或海報 URL 欄位。DCP 中文片名對照只能保存必要的本機映射資料，不得擴張為外部 metadata 或海報資料來源。
+V2.0 不顯示電影海報，不可建立海報容器、海報資產、海報載入狀態、圖片錯誤處理或海報 URL 欄位。DCP 中文片名對照只能保存必要的本機映射資料，不得擴張為外部 metadata 或海報資料來源。
 
 ## 二、Workspace Rules
 
@@ -366,7 +366,7 @@ Badge 色彩是格式與語言識別的限定例外，不得延伸為全站主�
 
 ## 十九、Future Rules
 
-- V1.2 維持離線優先架構；瀏覽器核心與 Electron 桌面版共用 Parser、集中 state 與 UI 模組。
+- V2.0 維持離線優先架構；瀏覽器核心與 Electron 桌面版共用 Parser、集中 state 與 UI 模組。
 - Electron 的 Node API 必須透過受控 preload 層提供，Renderer 不得直接取得完整 Node.js 或 `ipcRenderer` 權限。
 - Node.js 與 npm 僅用於開發、測試與建置，不得讓一般使用者安裝額外執行環境。
 - 若未來加入 SQLite，資料庫存取必須與前端資料模型分層，UI 不得直接操作資料庫。

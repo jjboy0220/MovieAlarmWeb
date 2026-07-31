@@ -1,13 +1,13 @@
-# Movie Schedule Alarm V1.2 開發路線圖
+# Movie Schedule Alarm V2.0 開發路線圖
 
 - 專案名稱：Movie Schedule Alarm
-- 目前版本：V1.2 原始碼重建與回歸測試中
+- 目前版本：V2.0 安裝檔已建立，等待 TC／MM 安裝版人工驗收
 - 專案位置：`D:\vscode\MovieAlarmWeb`
 - 技術：HTML、CSS、Vanilla JavaScript、SheetJS、PDF.js、Electron
 - 更新日期：2026-07-21
 - 文件用途：記錄功能進度、測試狀態與後續開發順序
 
-> `AGENTS.md` 定義專案應該如何開發、修改、測試與提交；`ROADMAP.md` 記錄專案目前完成到哪裡、下一步要做什麼，以及 V1.2 尚缺少哪些驗證。
+> `AGENTS.md` 定義專案應該如何開發、修改、測試與提交；`ROADMAP.md` 記錄專案目前完成到哪裡、下一步要做什麼，以及 V2.0 尚缺少哪些驗證。
 
 ## 狀態圖例
 
@@ -20,7 +20,7 @@
 
 ## 目前進度說明
 
-V1.0 核心功能與 Windows Desktop Preview 2 曾完成實際人工測試。V1.2 原始程式已由既有安裝檔的 `app.asar` 重建回工作區，目前等待完整回歸測試後再準備 Commit 與正式發佈。
+V2.0 共用功能已完成開發模式人工測試，TC 與 MM 安裝檔已重新建立；兩館安裝版仍需分別完成實機安裝與館別場次表驗收後，才可準備 Commit 與正式發佈。
 
 ## ✅ Commit 1：Core Data Engine
 
@@ -145,7 +145,7 @@ V1.0 核心功能與 Windows Desktop Preview 2 曾完成實際人工測試。V1.
 - 全站仍只有一個 Ticker
 - Console 無錯誤
 
-## 🧪 V1.2：Settings Center
+## 🧪 V2.0：Settings Center
 
 ### 目標
 
@@ -169,7 +169,7 @@ V1.0 核心功能與 Windows Desktop Preview 2 曾完成實際人工測試。V1.
 - 不建立第二個 Audio、State 或 Ticker
 - 警報音訊解鎖狀態不寫入 localStorage
 
-## 🧪 V1.2：Desktop、PDF 與本機資料
+## 🧪 V2.0：Desktop、PDF 與本機資料
 
 - 🧪 Electron Main Process 背景警報
 - 🧪 Windows 系統匣與精簡監控視窗
@@ -181,7 +181,7 @@ V1.0 核心功能與 Windows Desktop Preview 2 曾完成實際人工測試。V1.
 - 🧪 廳別語音警報
 - 🧪 營運日跨午夜與場次涵蓋提醒
 
-## ⏳ V1.2 Release Verification
+## ⏳ V2.0 Release Verification
 
 ### 目標
 
@@ -198,9 +198,9 @@ V1.0 核心功能與 Windows Desktop Preview 2 曾完成實際人工測試。V1.
 - 完整測試深色／淺色模式
 - 更新 `README.md`
 - 建立 `CHANGELOG.md`
-- 建立 V1.2 測試清單
-- 比對重建版與既有 `Movie-Schedule-Alarm-V1.2-Setup.exe`
-- 準備 `v1.2.0` Release
+- 建立 V2.0 測試清單
+- 分別驗收 TC 與 MM 的 V2.0 安裝檔及場次表規則
+- 準備 `v2.0.0` Release
 
 ### 驗收條件
 
@@ -213,7 +213,7 @@ V1.0 核心功能與 Windows Desktop Preview 2 曾完成實際人工測試。V1.
 - Git 工作區乾淨
 - 已推送到 `origin/main`
 
-## ⛔ V1.2 暫不開發
+## ⛔ V2.0 暫不開發
 
 - ⛔ TMDB API
 - ⛔ 從外部服務自動抓取中文片名

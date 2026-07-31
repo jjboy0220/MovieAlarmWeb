@@ -10,11 +10,16 @@ const REQUIRED_HEADERS = ['Screen', 'Start', 'Finish', 'Status', 'Film Title'];
 const VALID_SOURCE_STATUSES = new Set(['OPEN', 'PLANNED', 'CLOSED']);
 const PDF_WORKER_URL = new URL('../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 
-// 將 PDF 頁尾常見的美式日期時間轉為手機版統一顯示格式。
+// 將 PDF 頁尾的年優先或美式日期時間轉為桌面版統一顯示格式。
 export function parsePdfReportVersionTime(value) {
-  const match = normalizeText(value).match(/(?:^|\s)(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})(?:\s|$)/);
+  const match = normalizeText(value).match(/(?:^|\s)(?:(\d{4})\/(\d{1,2})\/(\d{1,2})|(\d{1,2})\/(\d{1,2})\/(\d{4}))\s+(\d{1,2}):(\d{2}):(\d{2})(?:\s|$)/);
   if (!match) return '';
-  const [, monthText, dayText, yearText, hourText, minuteText, secondText] = match;
+  const yearText = match[1] || match[6];
+  const monthText = match[2] || match[4];
+  const dayText = match[3] || match[5];
+  const hourText = match[7];
+  const minuteText = match[8];
+  const secondText = match[9];
   const year = Number(yearText);
   const month = Number(monthText);
   const day = Number(dayText);

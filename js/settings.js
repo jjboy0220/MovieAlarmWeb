@@ -16,6 +16,9 @@ export function normalizeSettings(candidate = {}) {
     alarmVolume: Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : DEFAULT_SETTINGS.alarmVolume,
     alarmSoundMode: soundMode,
     alarmLeadMinutes: ALARM_LEAD_MINUTES.includes(leadMinutes) ? leadMinutes : DEFAULT_SETTINGS.alarmLeadMinutes,
+    alarmAutoDismissEnabled: typeof source.alarmAutoDismissEnabled === 'boolean'
+      ? source.alarmAutoDismissEnabled
+      : DEFAULT_SETTINGS.alarmAutoDismissEnabled,
     startupEnabled: typeof source.startupEnabled === 'boolean' ? source.startupEnabled : DEFAULT_SETTINGS.startupEnabled,
     dailyImportReminderEnabled: typeof source.dailyImportReminderEnabled === 'boolean'
       ? source.dailyImportReminderEnabled

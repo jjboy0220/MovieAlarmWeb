@@ -3,6 +3,14 @@ const $ = selector => document.querySelector(selector);
 let latestPresentation = {};
 let alarmIsActive = false;
 
+// 依卡片實際外框高度調整 BrowserWindow，避免透明區域殘留成黑色空白。
+function requestCompactResize() {
+  const card = $('#compactCard');
+  if (!card) return;
+  const contentHeight = Math.ceil(card.getBoundingClientRect().height + 10);
+  void compactApi.resize(contentHeight);
+}
+
 // 將完整星期文字縮寫為單一繁體中文字，避免小視窗日期列過長。
 function formatCompactWeekday(weekday) {
   const normalized = String(weekday || '').trim();
@@ -28,6 +36,7 @@ function renderPresentation(presentation = {}) {
   if (alarmIsActive) return;
   $('#compactCard').classList.remove('alarm-mode');
   $('.compact-header > span').textContent = 'NEXT MOVIE';
+  $('#compactAutoDismissNote').hidden = !presentation.alarmAutoDismissEnabled;
   $('#stopAlarmButton').hidden = true;
   const compactWeekday = formatCompactWeekday(presentation.weekday);
   $('#compactDate').textContent = presentation.date && presentation.date !== '--'
@@ -35,6 +44,12 @@ function renderPresentation(presentation = {}) {
     : '--';
   $('#compactTime').textContent = presentation.time || '--:--';
   $('#compactCountdown').textContent = presentation.countdown || '00:00:00';
+  const scheduleFileName = presentation.scheduleFileName || '尚未匯入';
+  $('#compactScheduleFileName').textContent = `檔案名稱：${scheduleFileName}`;
+  $('#compactScheduleFileName').title = presentation.scheduleFileName || '';
+  $('#compactScheduleVersion').textContent = presentation.scheduleVersionTime
+    ? `場次版本：${presentation.scheduleVersionTime}`
+    : '場次版本：無法辨識';
   const container = $('#compactSessions');
   container.classList.toggle('many-sessions', presentation.sessions?.length > 1);
   container.replaceChildren();
@@ -60,7 +75,7 @@ function renderPresentation(presentation = {}) {
       container.append(card);
     });
   }
-  requestAnimationFrame(() => compactApi.resize(Math.ceil($('#compactCard').scrollHeight + 10)));
+  requestAnimationFrame(requestCompactResize);
 }
 
 // 將 Main Process 到點資料顯示於同一個小視窗，並提供停止目前警報的唯一按鈕。
@@ -72,6 +87,7 @@ function renderAlarm(payload = {}) {
   $('#compactDate').textContent = payload.dateLabel || '--';
   $('#compactTime').textContent = payload.timeLabel || '--:--';
   $('#compactCountdown').textContent = '00:00:00';
+  $('#compactAutoDismissNote').hidden = !latestPresentation.alarmAutoDismissEnabled;
   $('#stopAlarmButton').hidden = false;
   const container = $('#compactSessions');
   container.classList.toggle('many-sessions', sessions.length > 1);
@@ -92,7 +108,7 @@ function renderAlarm(payload = {}) {
     card.append(badges);
     container.append(card);
   });
-  requestAnimationFrame(() => compactApi.resize(Math.ceil($('#compactCard').scrollHeight + 10)));
+  requestAnimationFrame(requestCompactResize);
 }
 
 // 停止警報後直接恢復最新 Next Movie 顯示，不切回完整主視窗。

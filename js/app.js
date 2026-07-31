@@ -1,12 +1,11 @@
 import { APP_DISPLAY_NAME, VERSION } from './config.js';
 import { hasStoredStartupPreference, loadSettings, normalizeSettings, saveSettings } from './settings.js';
-import { readExcel } from './excelReader.js';
 import { readPdfSchedule } from './pdfScheduleReader.js';
 import { createSessionGroupKey, getLatestUntriggeredSessionGroup, getNextMoviePresentationState, sortSessionsByStart, updateSessionStatuses } from './scheduler.js';
 import { formatCountdown, getCountdownSeconds, getCountdownTickerStatus, startCountdownTicker } from './countdown.js';
 import { createAlarmChannel } from './alarm.js';
 import { getScheduleDebugInfo } from './debug.js';
-import { applyTheme, bindAlarmControls, bindCompactWindowControls, bindDailyImportReminder, bindDcpTitleControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, configureCinemaUi, hideAlarmModal, hideDailyImportReminder, showDailyImportReminder, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateCompactWindowMode, updateDcpTitleStatus, updateDebugPanel, updateFileStatus, updateHallVoiceTestStatus, updateNextMovieCard, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
+import { applyTheme, bindAlarmControls, bindCompactWindowControls, bindDailyImportReminder, bindDcpTitleControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, configureCinemaUi, hideAlarmModal, hideDailyImportReminder, showDailyImportReminder, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateCompactWindowMode, updateDcpTitleStatus, updateDebugPanel, updateFileStatus, updateHallVoiceTestStatus, updateNextMovieCard, updateScheduleImportStatus, updateScheduleVersionTime, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
 import { createEmptyTable, renderMovieRows } from './table.js';
 import { bindSearch, matchesSearch } from './search.js';
 import { bindFilters, matchesFilters, populateDateFilterOptions, populateFilterOptions } from './filter.js';
@@ -25,10 +24,13 @@ const desktopScheduleReminder = globalThis.desktopScheduleReminder || null;
 const desktopWindow = globalThis.desktopWindow || null;
 const desktopSystemVolume = globalThis.desktopSystemVolume || null;
 const DAILY_REMINDER_STORAGE_KEY = 'movieScheduleAlarm.dailyReminder.v1';
+const ALARM_AUTO_DISMISS_MS = 60_000;
 const restoredDcpTitleData = loadDcpTitleData();
 let desktopAlarmScheduleSignature = '';
 let unsubscribeDesktopAlarm = null;
 let unsubscribeDesktopAlarmStopRequest = null;
+let unsubscribeDesktopAlarmSessionSuspended = null;
+let unsubscribeDesktopAlarmSessionResumed = null;
 let unsubscribeDesktopScheduleReminder = null;
 let unsubscribeDesktopWindowMode = null;
 let desktopMonitoringSignature = '';
@@ -50,6 +52,8 @@ const state = {
   importedFileName: '',
   importedAt: null,
   scheduleSourceType: '',
+  scheduleVersionTime: '',
+  scheduleImportStatus: 'empty',
   operationalDateKey: '',
   coverageReminderKey: '',
   pdfImportDebug: {
@@ -68,6 +72,8 @@ const state = {
   lastTickerUpdatedAt: null,
   nextSessionGroup: null,
   activeAlarmGroup: null,
+  activeAlarmAutoDismissAt: null,
+  alarmSuspendedForSession: false,
   triggeredAlarmGroups: new Set(),
   alarmEnabled: false,
   alarmUnlocked: false,
@@ -481,6 +487,11 @@ function handleDesktopAlarmTriggered(payload) {
 // 將設定變更正規化後存入唯一 state，套用到 UI 與既有 Audio Channel，且不建立額外 Timer。
 function updateSettings(patch, shouldPersist = true) {
   state.settings = normalizeSettings({ ...state.settings, ...patch });
+  if (Object.prototype.hasOwnProperty.call(patch, 'alarmAutoDismissEnabled') && state.activeAlarmGroup) {
+    state.activeAlarmAutoDismissAt = state.settings.alarmAutoDismissEnabled
+      ? new Date(Date.now() + ALARM_AUTO_DISMISS_MS)
+      : null;
+  }
   applyTheme(state.settings.theme);
   alarmChannel.applySettings(state.settings);
   updateSettingsForm(state.settings, state.desktopStartupState);
@@ -584,6 +595,9 @@ function updateNextMovieClock(now = new Date()) {
     weekday: group?.sessions?.[0]?.weekday || '',
     time: group?.sessions?.[0]?.start || '--:--',
     countdown,
+    scheduleVersionTime: state.scheduleVersionTime,
+    scheduleFileName: state.importedFileName,
+    alarmAutoDismissEnabled: state.settings.alarmAutoDismissEnabled,
     sessions: (group?.sessions || []).map(session => ({
       hall: session.hall || '',
       title: session.displayTitle || session.title || '',
@@ -641,6 +655,10 @@ function triggerAlarmGroup(group, now, isMissed) {
 
   state.lastAlarmTriggeredAt = now;
   state.activeAlarmGroup = group;
+  state.activeAlarmAutoDismissAt = state.settings.alarmAutoDismissEnabled
+    ? new Date(now.getTime() + ALARM_AUTO_DISMISS_MS)
+    : null;
+  state.alarmSuspendedForSession = false;
   showAlarmModal(group, getAlarmAudioNotice(), state.settings.alarmLeadMinutes);
   state.desktopAlarmDebug.modalOpenedAt = Date.now();
   void playAlarmForGroup(group);
@@ -669,6 +687,8 @@ function stopActiveAlarm() {
   const stoppedGroupKey = state.activeAlarmGroup?.groupKey || '';
   alarmChannel.stopAlarm(state.settings);
   state.activeAlarmGroup = null;
+  state.activeAlarmAutoDismissAt = null;
+  state.alarmSuspendedForSession = false;
   syncAlarmRuntimeState();
   hideAlarmModal();
   updateNextMovieClock(new Date());
@@ -676,6 +696,30 @@ function stopActiveAlarm() {
     void desktopAlarm.acknowledge(stoppedGroupKey).then(applyDesktopAlarmDebug).catch(() => {});
   }
   updateDebugPanelFromState(new Date());
+}
+
+// Windows 鎖定或切換使用者時只暫停目前警報，不清除 activeAlarmGroup 或已觸發紀錄。
+function suspendActiveAlarmForSession() {
+  if (!state.activeAlarmGroup || state.alarmSuspendedForSession) return;
+  state.alarmSuspendedForSession = true;
+  state.activeAlarmAutoDismissAt = null;
+  alarmChannel.stopAlarm(state.settings);
+  syncAlarmRuntimeState();
+  hideAlarmModal();
+  updateNextMovieClock(new Date());
+}
+
+// Windows 解鎖登入後恢復鎖定前的同一警報，並重新給予完整的自動返回時間。
+function resumeActiveAlarmForSession() {
+  if (!state.activeAlarmGroup || !state.alarmSuspendedForSession) return;
+  const now = new Date();
+  state.alarmSuspendedForSession = false;
+  state.activeAlarmAutoDismissAt = state.settings.alarmAutoDismissEnabled
+    ? new Date(now.getTime() + ALARM_AUTO_DISMISS_MS)
+    : null;
+  showAlarmModal(state.activeAlarmGroup, getAlarmAudioNotice(), state.settings.alarmLeadMinutes);
+  state.desktopAlarmDebug.modalOpenedAt = Date.now();
+  void playAlarmForGroup(state.activeAlarmGroup);
 }
 
 // 在使用者點選單一開關時解鎖音效；成功只更新狀態 Badge，失敗才顯示非阻塞錯誤提示。
@@ -710,6 +754,14 @@ function toggleAlarmSound() {
 // 集中處理唯一 ticker 的每秒更新，讓 Alarm、Next Movie 與展開的偵錯面板共用同一個時間來源。
 function handleTimeTick(now = new Date(), resumedFromBackground = false) {
   if (document.hidden && !desktopAlarm) return;
+  if (
+    state.activeAlarmGroup
+    && !state.alarmSuspendedForSession
+    && state.activeAlarmAutoDismissAt
+    && now >= state.activeAlarmAutoDismissAt
+  ) {
+    stopActiveAlarm();
+  }
 
   const previousTickAt = state.lastTickerUpdatedAt;
   if (!desktopAlarm) checkAlarmSchedule(now, previousTickAt, resumedFromBackground || state.pageWasHidden);
@@ -740,7 +792,7 @@ function renderFromState(now = new Date()) {
   updateStatistics(summarizeSessions(selectedSessions, state.visibleSessions));
 
   if (!state.importedFileName) {
-    setTableNotice('尚未匯入場次表，請選擇 Excel 或 PDF 檔案。');
+    setTableNotice('尚未匯入場次表，請選擇 PDF 檔案。');
   } else if (!state.visibleSessions.length) {
     setTableNotice(getEmptyScheduleMessage());
   } else {
@@ -769,11 +821,6 @@ function getEmptyScheduleMessage() {
   return statusMessages[state.statusFilter] || statusMessages.ALL;
 }
 
-// 建立匯入成功後共用的檔案狀態文字。
-function getImportedStatus(fileName, sourceLabel, sessionCount, importedTime) {
-  return `已讀取 ${fileName}／${sourceLabel}：${sessionCount} 個場次（${importedTime}）`;
-}
-
 // 在新的場次表成功匯入前停止舊警報並清除舊群組觸發紀錄，保留唯一 Audio Channel。
 function resetAlarmStateForImport() {
   desktopAlarmScheduleSignature = '';
@@ -789,8 +836,8 @@ function resetAlarmStateForImport() {
   syncAlarmRuntimeState();
 }
 
-// 將 Excel 與 PDF Reader 的成功結果交給唯一資料流程，取代舊 sessions 並更新所有衍生畫面與排程。
-function applyImportedSessions({ sessions, sourceType, sourceFileName, sourceLabel, metadata = {} }) {
+// 將 PDF Reader 的成功結果交給唯一資料流程，取代舊 sessions 並更新所有衍生畫面與排程。
+function applyImportedSessions({ sessions, sourceType, sourceFileName, metadata = {} }) {
   resetAlarmStateForImport();
   const importedAt = new Date();
   state.sessions = sortSessionsByStart(updateSessionStatuses(
@@ -800,11 +847,13 @@ function applyImportedSessions({ sessions, sourceType, sourceFileName, sourceLab
   state.importedFileName = sourceFileName;
   state.importedAt = importedAt;
   state.scheduleSourceType = sourceType;
+  state.scheduleVersionTime = String(metadata.reportVersionTime || '');
   saveScheduleSnapshot({
     sessions: state.sessions,
     importedFileName: state.importedFileName,
     importedAt: state.importedAt,
-    scheduleSourceType: state.scheduleSourceType
+    scheduleSourceType: state.scheduleSourceType,
+    scheduleVersionTime: state.scheduleVersionTime
   });
   state.lastTickerUpdatedAt = importedAt;
   state.pdfImportDebug = sourceType === 'pdf' ? {
@@ -825,13 +874,11 @@ function applyImportedSessions({ sessions, sourceType, sourceFileName, sourceLab
   refreshDcpTitleStatus();
   applyFilters(importedAt);
 
-  const importedTime = importedAt.toLocaleTimeString('zh-TW', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-  });
-  const successMessage = sourceType === 'pdf'
-    ? `PDF 場次表匯入成功，共載入 ${state.sessions.length} 個場次`
-    : getImportedStatus(sourceFileName, sourceLabel, state.sessions.length, importedTime);
+  const successMessage = `PDF 場次表匯入成功，共載入 ${state.sessions.length} 個場次`;
   updateFileStatus(successMessage);
+  state.scheduleImportStatus = 'success';
+  updateScheduleImportStatus(state.scheduleImportStatus);
+  updateScheduleVersionTime(state.scheduleVersionTime, state.importedFileName);
   if (sourceType === 'pdf') {
     document.dispatchEvent(new CustomEvent('movie-schedule:pdf-imported', {
       detail: {
@@ -863,10 +910,14 @@ function restoreStoredSchedule(now = new Date()) {
   state.importedFileName = restored.importedFileName;
   state.importedAt = restored.importedAt;
   state.scheduleSourceType = restored.scheduleSourceType;
+  state.scheduleVersionTime = restored.scheduleVersionTime;
   state.lastTickerUpdatedAt = now;
   state.dateFilter = populateDateFilterOptions(state.sessions, 'AUTO');
   updateDcpSessionDebug();
   updateFileStatus(`已恢復上次場次表：${state.importedFileName || '本機場次資料'}`);
+  state.scheduleImportStatus = 'success';
+  updateScheduleImportStatus(state.scheduleImportStatus);
+  updateScheduleVersionTime(state.scheduleVersionTime, state.importedFileName);
   syncDesktopMonitoringState();
 }
 
@@ -881,7 +932,7 @@ async function checkScheduleCoverageReminder(now = new Date()) {
   const displayDate = endDateKey.replaceAll('-', '/');
   showDailyImportReminder({
     title: '目前場次資料已全部結束',
-    message: `已匯入的場次涵蓋至 ${displayDate}，請匯入 ${displayDate} 之後的 Excel 或 PDF 場次表。`
+    message: `已匯入的場次涵蓋至 ${displayDate}，請匯入 ${displayDate} 之後的 PDF 場次表。`
   });
   saveDailyReminderState({ lastCoverageReminderKey: coverage.coverageKey });
 
@@ -898,24 +949,17 @@ async function checkScheduleCoverageReminder(now = new Date()) {
   }
 }
 
-// 讀取 Excel 後交給共用匯入流程；解析失敗時不清除既有 sessions 或警報排程。
-async function importExcelSchedule(file) {
-  updateFileStatus(`正在讀取 Excel：${file.name}`);
-  try {
-    const { sheetName, movies } = await readExcel(file);
-    applyImportedSessions({ sessions: movies, sourceType: 'excel', sourceFileName: file.name, sourceLabel: sheetName });
-  } catch (error) {
-    updateFileStatus(`Excel 匯入失敗：${error.message}；已保留上一份資料。`);
-  }
-}
-
 // 讀取 PDF 文字層後交給共用匯入流程；任何錯誤都保留上一份成功資料與排程。
 async function importPdfSchedule(file) {
+  state.scheduleImportStatus = 'loading';
+  updateScheduleImportStatus(state.scheduleImportStatus);
   updateFileStatus(`正在讀取 PDF：${file.name}`);
   try {
     const { movies, metadata } = await readPdfSchedule(file);
-    applyImportedSessions({ sessions: movies, sourceType: 'pdf', sourceFileName: file.name, sourceLabel: 'PDF', metadata });
+    applyImportedSessions({ sessions: movies, sourceType: 'pdf', sourceFileName: file.name, metadata });
   } catch (error) {
+    state.scheduleImportStatus = 'error';
+    updateScheduleImportStatus(state.scheduleImportStatus);
     updateFileStatus(`PDF 匯入失敗：${error.message}；已保留上一份資料。`);
   }
 }
@@ -949,10 +993,6 @@ function init() {
   bindDcpTitleControls({ onImport: importDcpTitles, onClear: clearDcpTitles });
   refreshDcpTitleStatus();
   bindDailyImportReminder({
-    onUploadExcel: () => {
-      hideDailyImportReminder();
-      document.querySelector('#fileInput').click();
-    },
     onUploadPdf: () => {
       hideDailyImportReminder();
       document.querySelector('#pdfFileInput').click();
@@ -976,13 +1016,6 @@ function init() {
     state[filterName] = filterValue;
     applyFilters();
   });
-  document.querySelector('#fileInput').addEventListener('change', async event => {
-    const file = event.target.files[0];
-    if (file) {
-      await importExcelSchedule(file);
-    }
-    event.target.value = '';
-  });
   document.querySelector('#pdfFileInput').addEventListener('change', async event => {
     const file = event.target.files[0];
     if (file) {
@@ -994,13 +1027,15 @@ function init() {
   initializeCompactWindowAutoSize();
   unsubscribeDesktopAlarm = desktopAlarm?.onTriggered(handleDesktopAlarmTriggered) || null;
   unsubscribeDesktopAlarmStopRequest = desktopAlarm?.onStopRequested(stopActiveAlarm) || null;
+  unsubscribeDesktopAlarmSessionSuspended = desktopAlarm?.onSessionSuspended?.(suspendActiveAlarmForSession) || null;
+  unsubscribeDesktopAlarmSessionResumed = desktopAlarm?.onSessionResumed?.(resumeActiveAlarmForSession) || null;
   unsubscribeDesktopScheduleReminder = desktopScheduleReminder?.onShowRequested(payload => {
     if (payload?.kind === 'coverage-exhausted') {
       const coverage = getScheduleCoverageState(state.sessions, new Date());
       const displayDate = coverage.latestFinishDate ? getLocalTodayKey(coverage.latestFinishDate).replaceAll('-', '/') : '目前日期';
       showDailyImportReminder({
         title: '目前場次資料已全部結束',
-        message: `已匯入的場次涵蓋至 ${displayDate}，請匯入 ${displayDate} 之後的 Excel 或 PDF 場次表。`
+        message: `已匯入的場次涵蓋至 ${displayDate}，請匯入 ${displayDate} 之後的 PDF 場次表。`
       });
       return;
     }
@@ -1011,6 +1046,8 @@ function init() {
     dailyReminderTimer.cancel();
     unsubscribeDesktopAlarm?.();
     unsubscribeDesktopAlarmStopRequest?.();
+    unsubscribeDesktopAlarmSessionSuspended?.();
+    unsubscribeDesktopAlarmSessionResumed?.();
     unsubscribeDesktopScheduleReminder?.();
     unsubscribeDesktopWindowMode?.();
     compactWindowResizeObserver?.disconnect();

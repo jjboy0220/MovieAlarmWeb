@@ -1,7 +1,7 @@
 const STORAGE_KEY = 'movieScheduleAlarm.schedule.v1';
 const MAX_STORED_SESSIONS = 5000;
 
-// 保存解析後的標準化場次與來源摘要，不保存使用者原始 Excel 或 PDF 檔案。
+// 保存解析後的標準化場次與來源摘要，不保存使用者原始 PDF 檔案。
 export function saveScheduleSnapshot(snapshot) {
   try {
     const sessions = Array.isArray(snapshot?.sessions) ? snapshot.sessions.slice(0, MAX_STORED_SESSIONS) : [];
@@ -11,7 +11,8 @@ export function saveScheduleSnapshot(snapshot) {
       sessions,
       importedFileName: String(snapshot.importedFileName || ''),
       importedAt: snapshot.importedAt instanceof Date ? snapshot.importedAt.toISOString() : snapshot.importedAt,
-      scheduleSourceType: String(snapshot.scheduleSourceType || '')
+      scheduleSourceType: String(snapshot.scheduleSourceType || ''),
+      scheduleVersionTime: String(snapshot.scheduleVersionTime || '')
     }));
     return true;
   } catch {
@@ -35,7 +36,8 @@ export function loadScheduleSnapshot() {
       sessions,
       importedFileName: String(parsed.importedFileName || ''),
       importedAt: Number.isNaN(importedAt.getTime()) ? null : importedAt,
-      scheduleSourceType: String(parsed.scheduleSourceType || '')
+      scheduleSourceType: String(parsed.scheduleSourceType || ''),
+      scheduleVersionTime: String(parsed.scheduleVersionTime || '')
     };
   } catch {
     return null;

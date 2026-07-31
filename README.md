@@ -1,4 +1,4 @@
-# Movie Schedule Alarm V1.2
+# Movie Schedule Alarm V2.0
 
 Movie Schedule Alarm 是以 HTML5、CSS3、Vanilla JavaScript ES6 與 Electron 製作的影城營運場次工具。系統可離線讀取 Excel 或 PDF 場次表、標準化影廳與電影資料，並可匯入本機 DCP 工作表補充中文片名。
 
@@ -66,7 +66,7 @@ Launcher 會依序檢查 5500 至 5505，選擇第一個可用 Port 啟動本機
 
 ## 離線電影資料原則
 
-V1.2 不使用 Token、外部圖片、電影翻譯服務或外部電影 metadata 服務。Excel／PDF 匯入成功後，表格、Next Movie、搜尋、篩選與統計都直接使用集中 state；DCP 中文片名只由使用者匯入的本機工作表建立對照。Next Movie 不顯示電影海報。
+V2.0 不使用 Token、外部圖片、電影翻譯服務或外部電影 metadata 服務。Excel／PDF 匯入成功後，表格、Next Movie、搜尋、篩選與統計都直接使用集中 state；DCP 中文片名只由使用者匯入的本機工作表建立對照。Next Movie 不顯示電影海報。
 
 
 
@@ -80,7 +80,7 @@ Windows 桌面版由 Electron Main Process 依完整時間戳安排下一個警�
 ## 偵錯資訊
 
 頁面底部提供預設收合的「顯示偵錯資訊」面板。它只讀取集中 state、排程引擎與既有的單一倒數 ticker，可檢視系統時間、匯入檔案、日期時間有效性、下一個群組與場次狀態；展開與收合不會建立或停止任何額外計時器。
-## Windows Desktop V1.2
+## Windows Desktop V2.0
 
 Windows Desktop Preview 使用 Electron 封裝既有 HTML、CSS 與 Vanilla JavaScript，不重寫網站本體。只有建置電腦需要 Node.js 與 npm；一般使用者只需執行建置後的 EXE，不需要安裝 Node.js、npm、Python、VS Code 或 Live Server。
 
@@ -93,11 +93,11 @@ npm run build:portable
 npm run build:installer
 ```
 
-館別安裝檔採共用核心與獨立設定：`cinemas/TC` 保存 TC V1.0 的 GC 廳與建置規則，`cinemas/MM` 保存 MM V1.0 的數字廳、ATMOS／CTRL 與獨立應用程式識別。分別執行 `npm run build:tc`、`npm run build:mm`，輸出位於 `release/TC`、`release/MM`，兩個安裝版本可並存且不互相覆蓋。
+館別安裝檔採共用核心與獨立設定：`cinemas/TC` 保存 TC V2.0 的 GC 廳與建置規則，`cinemas/MM` 保存 MM V2.0 的數字廳、ATMOS／CTRL 與獨立應用程式識別。分別執行 `npm run build:tc`、`npm run build:mm`，輸出位於 `release/TC`、`release/MM`，兩個安裝版本可並存且不互相覆蓋。
 
 `npm run desktop` 啟動 Electron 開發版；`npm run build:portable` 建立 Windows x64 免安裝版，`npm run build:installer` 建立 Windows x64 NSIS 安裝程式。
 
-### V1.2 功能
+### V2.0 功能
 
 - 最小化後仍可準時提醒。
 - 背景狀態由 Electron Main Process 排程。
@@ -111,7 +111,7 @@ npm run build:installer
 - 提供預設警報、廳別語音與靜音視覺提醒。
 - 停止警報後取消強制置頂。
 
-共用核心的免安裝版檔名維持 `Movie-Schedule-Alarm-V1.2-Portable.exe`；TC 影城的 NSIS 安裝程式檔名為 `(TC)Movie-Schedule-Alarm-V1.0-Setup.exe`，MM 影城則為 `(MM)Movie-Schedule-Alarm-V1.0-Setup.exe`。
+共用核心的免安裝版檔名為 `Movie-Schedule-Alarm-V2.0-Portable.exe`；TC 影城的 NSIS 安裝程式檔名為 `(TC)Movie-Schedule-Alarm-V2.0-Setup.exe`，MM 影城則為 `(MM)Movie-Schedule-Alarm-V2.0-Setup.exe`。
 
 ### SheetJS 離線支援
 

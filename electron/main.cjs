@@ -12,6 +12,7 @@ let mainWindow = null;
 let compactWindow = null;
 let alarmCoordinator = null;
 let pendingTriggeredPayload = null;
+let activeAlarmPayload = null;
 let activeScheduleNotification = null;
 let tray = null;
 let isQuitting = false;
@@ -22,7 +23,7 @@ let compactPresentation = null;
 let compactAlwaysOnTop = true;
 const systemVolumeBridge = createSystemVolumeBridge();
 
-const COMPACT_WINDOW_BOUNDS = Object.freeze({ width: 460, height: 420 });
+const COMPACT_WINDOW_BOUNDS = Object.freeze({ width: 460, height: 340 });
 
 // 顯示關閉監控確認；只有使用者明確選擇「是」才完整結束背景程序。
 async function requestApplicationQuit() {
@@ -85,7 +86,7 @@ function createCompactWindow() {
     width: COMPACT_WINDOW_BOUNDS.width,
     height: COMPACT_WINDOW_BOUNDS.height,
     minWidth: 400,
-    minHeight: 300,
+    minHeight: 160,
     frame: false,
     transparent: true,
     roundedCorners: true,
@@ -146,9 +147,10 @@ function resizeCompactWindow(contentHeight) {
   if (!Number.isFinite(requestedHeight)) throw new TypeError('小視窗內容高度必須是有限數字');
   const currentBounds = compactWindow.getBounds();
   const workArea = screen.getDisplayMatching(currentBounds).workArea;
-  const maximumHeight = Math.max(300, Math.floor(workArea.height * 0.82));
-  const height = Math.min(maximumHeight, Math.max(300, Math.round(requestedHeight)));
-  compactWindow.setSize(COMPACT_WINDOW_BOUNDS.width, height, true);
+  const minimumHeight = 160;
+  const maximumHeight = Math.max(minimumHeight, Math.floor(workArea.height * 0.82));
+  const height = Math.min(maximumHeight, Math.max(minimumHeight, Math.round(requestedHeight)));
+  compactWindow.setSize(COMPACT_WINDOW_BOUNDS.width, height, false);
   return { enabled: true, height };
 }
 
@@ -218,6 +220,7 @@ function bindDesktopAlarmIpc() {
   ipcMain.handle('desktop-alarm:acknowledge', (event, groupKey) => {
     if (!isTrustedSender(event)) throw new Error('拒絕未授權的警報停止來源');
     const debug = alarmCoordinator.acknowledge(groupKey);
+    if (!groupKey || activeAlarmPayload?.groupKey === groupKey) activeAlarmPayload = null;
     refreshWindowTopmostState();
     if (compactWindow && !compactWindow.isDestroyed()) compactWindow.webContents.send('compact-window:alarm-stopped');
     return includeWebContentsAudioDebug(debug);
@@ -487,6 +490,7 @@ if (!hasSingleInstanceLock) {
         if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) {
           return { sent: false, rendererDestroyed: true, rendererWebContentsId: null };
         }
+        if (payload.shouldAlert) activeAlarmPayload = payload;
         if (mainWindow.webContents.isLoadingMainFrame()) {
           pendingTriggeredPayload = payload;
           return { sent: false, rendererDestroyed: false, rendererWebContentsId: mainWindow.webContents.id };
@@ -512,7 +516,25 @@ if (!hasSingleInstanceLock) {
     bindDesktopScheduleReminderIpc();
     bindDesktopWindowIpc();
     powerMonitor.on('resume', () => alarmCoordinator.checkAfterResume());
-    powerMonitor.on('unlock-screen', () => alarmCoordinator.checkAfterResume());
+    powerMonitor.on('lock-screen', () => {
+      alarmCoordinator.handleSessionLock();
+      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+        mainWindow.webContents.send('desktop-alarm:session-suspended');
+      }
+      if (compactWindow && !compactWindow.isDestroyed()) {
+        compactWindow.webContents.send('compact-window:alarm-stopped');
+      }
+      refreshWindowTopmostState();
+    });
+    powerMonitor.on('unlock-screen', () => {
+      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+        mainWindow.webContents.send('desktop-alarm:session-resumed');
+      }
+      if (activeAlarmPayload && compactWindow && !compactWindow.isDestroyed()) {
+        compactWindow.webContents.send('compact-window:alarm', activeAlarmPayload);
+      }
+      alarmCoordinator.handleSessionUnlock();
+    });
     createTray();
     createMainWindow();
 

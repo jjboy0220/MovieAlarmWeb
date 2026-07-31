@@ -301,7 +301,7 @@ export function showDailyImportReminder({ title = '尚未匯入今日場次表',
   $('#dailyImportReminderTitle').textContent = title;
   $('#dailyImportReminderMessage').textContent = message;
   $('#dailyImportReminderModal').hidden = false;
-  $('#uploadTodayExcelScheduleButton').focus();
+  $('#uploadTodayPdfScheduleButton').focus();
 }
 
 // 關閉今日場次匯入提醒，不影響程式與既有場次資料。
@@ -309,9 +309,8 @@ export function hideDailyImportReminder() {
   $('#dailyImportReminderModal').hidden = true;
 }
 
-// 綁定提醒 Modal 的 Excel、PDF 與稍後提醒按鈕，沿用頁首既有的兩個檔案輸入元件。
-export function bindDailyImportReminder({ onUploadExcel, onUploadPdf, onSnooze }) {
-  $('#uploadTodayExcelScheduleButton').addEventListener('click', onUploadExcel);
+// 綁定提醒 Modal 的 PDF 與稍後提醒按鈕，沿用頁首唯一的場次檔案輸入元件。
+export function bindDailyImportReminder({ onUploadPdf, onSnooze }) {
   $('#uploadTodayPdfScheduleButton').addEventListener('click', onUploadPdf);
   $('#snoozeTodayScheduleButton').addEventListener('click', onSnooze);
 }
@@ -340,6 +339,35 @@ export function updateDebugPanel(debugInfo, isOpen) {
 // 更新匯入檔案的狀態文字。
 export function updateFileStatus(message) {
   $('#fileStatus').textContent = message;
+}
+
+// 顯示目前 PDF 檔名與報表頁尾版本時間，長檔名保留完整提示文字。
+export function updateScheduleVersionTime(versionTime = '', fileName = '') {
+  const value = String(versionTime || '').trim();
+  const sourceName = String(fileName || '').trim();
+  const status = $('#scheduleVersionTime');
+  const fileLabel = sourceName || '尚未匯入';
+  const versionLabel = value || '無法辨識';
+  const fileLine = document.createElement('span');
+  const versionLine = document.createElement('span');
+  fileLine.textContent = `檔案名稱：${fileLabel}`;
+  versionLine.textContent = `場次版本：${versionLabel}`;
+  status.replaceChildren(fileLine, versionLine);
+  status.title = sourceName ? `檔案名稱：${sourceName}\n場次版本：${versionLabel}` : '尚未匯入 PDF 場次表';
+}
+
+// 以文字與顏色同步呈現本次 PDF 匯入狀態，避免只依賴顏色傳達結果。
+export function updateScheduleImportStatus(status = 'empty') {
+  const statusElement = $('#scheduleImportStatus');
+  const presentations = {
+    empty: { text: '尚未匯入', className: 'is-empty' },
+    loading: { text: '讀取中', className: 'is-loading' },
+    success: { text: '匯入成功', className: 'is-success' },
+    error: { text: '匯入失敗', className: 'is-error' }
+  };
+  const presentation = presentations[status] || presentations.empty;
+  statusElement.className = `schedule-import-status ${presentation.className}`;
+  statusElement.textContent = presentation.text;
 }
 
 // 集中更新統計卡；時間狀態欄位在本次提交固定顯示 0。
@@ -386,6 +414,9 @@ export function updateSettingsForm(settings, desktopStartupState = {}) {
   $('#settingsTheme').value = settings?.theme === 'light' ? 'light' : 'dark';
   $('#settingsDebugPanel').checked = Boolean(settings?.debugPanelOpen);
   $('#settingsDailyImportReminder').checked = Boolean(settings?.dailyImportReminderEnabled);
+  $('#settingsAlarmAutoDismiss').checked = Boolean(settings?.alarmAutoDismissEnabled);
+  $('#alarmAutoDismissNote').hidden = !settings?.alarmAutoDismissEnabled;
+  $('#alarmAutoDismissStatus').hidden = !settings?.alarmAutoDismissEnabled;
 
   const desktopGroup = $('#desktopSettingsGroup');
   const isDesktop = Boolean(desktopStartupState.isDesktop);
@@ -447,6 +478,7 @@ export function bindSettingsControls({ onChange, onStartupChange, onHallVoiceTes
   $('#settingsTheme').addEventListener('change', event => onChange({ theme: event.target.value }));
   $('#settingsDebugPanel').addEventListener('change', event => onChange({ debugPanelOpen: event.target.checked }));
   $('#settingsDailyImportReminder').addEventListener('change', event => onChange({ dailyImportReminderEnabled: event.target.checked }));
+  $('#settingsAlarmAutoDismiss').addEventListener('change', event => onChange({ alarmAutoDismissEnabled: event.target.checked }));
   $('#settingsStartupEnabled').addEventListener('change', event => onStartupChange(event.target.checked));
   $('#playHallVoiceTestButton').addEventListener('click', () => onHallVoiceTest($('#hallVoiceTestSelect').value));
 }

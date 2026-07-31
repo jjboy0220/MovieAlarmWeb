@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// 僅暴露桌面警報所需的四個窄介面，不提供完整 ipcRenderer 或任何 Node.js API。
+// 僅暴露桌面警報所需的窄介面，不提供完整 ipcRenderer 或任何 Node.js API。
 contextBridge.exposeInMainWorld('desktopAlarm', Object.freeze({
   schedule: payload => ipcRenderer.invoke('desktop-alarm:schedule', payload),
   cancel: () => ipcRenderer.invoke('desktop-alarm:cancel'),
@@ -16,6 +16,18 @@ contextBridge.exposeInMainWorld('desktopAlarm', Object.freeze({
     const listener = () => callback();
     ipcRenderer.on('desktop-alarm:stop-requested', listener);
     return () => ipcRenderer.removeListener('desktop-alarm:stop-requested', listener);
+  },
+  onSessionSuspended: callback => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = () => callback();
+    ipcRenderer.on('desktop-alarm:session-suspended', listener);
+    return () => ipcRenderer.removeListener('desktop-alarm:session-suspended', listener);
+  },
+  onSessionResumed: callback => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = () => callback();
+    ipcRenderer.on('desktop-alarm:session-resumed', listener);
+    return () => ipcRenderer.removeListener('desktop-alarm:session-resumed', listener);
   }
 }));
 
