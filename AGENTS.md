@@ -9,7 +9,7 @@
 - 專案名稱：Movie Schedule Alarm
 - 版本：V1.2
 - 用途：影城營運場次管理工具
-- 固定工作區：`D:\MovieAlarmWeb`
+- 固定工作區：`D:\vscode\MovieAlarmWeb`
 
 主要技術：
 
@@ -42,7 +42,7 @@ V1.2 不顯示電影海報，不可建立海報容器、海報資產、海報載
 所有讀取、修改、測試與 Git 操作只能在：
 
 ```text
-D:\MovieAlarmWeb
+D:\vscode\MovieAlarmWeb
 ```
 
 禁止：

@@ -2,7 +2,7 @@
 
 - 專案名稱：Movie Schedule Alarm
 - 目前版本：V1.2 原始碼重建與回歸測試中
-- 專案位置：`D:\MovieAlarmWeb`
+- 專案位置：`D:\vscode\MovieAlarmWeb`
 - 技術：HTML、CSS、Vanilla JavaScript、SheetJS、PDF.js、Electron
 - 更新日期：2026-07-21
 - 文件用途：記錄功能進度、測試狀態與後續開發順序
