@@ -5,8 +5,8 @@ import { createSessionGroupKey, getLatestUntriggeredSessionGroup, getNextMoviePr
 import { formatCountdown, getCountdownSeconds, getCountdownTickerStatus, startCountdownTicker } from './countdown.js';
 import { createAlarmChannel } from './alarm.js';
 import { getScheduleDebugInfo } from './debug.js';
-import { applyTheme, bindAlarmControls, bindCompactWindowControls, bindDailyImportReminder, bindDcpTitleControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, configureCinemaUi, hideAlarmModal, hideDailyImportReminder, showDailyImportReminder, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateCompactWindowMode, updateDcpTitleStatus, updateDebugPanel, updateFileStatus, updateHallVoiceTestStatus, updateNextMovieCard, updateScheduleImportStatus, updateScheduleVersionTime, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
-import { createEmptyTable, renderMovieRows } from './table.js';
+import { applyTheme, bindAlarmControls, bindCompactWindowControls, bindDailyImportReminder, bindDcpTitleControls, bindDebugPanel, bindSettingsControls, bindThemeToggle, configureCinemaUi, hideAlarmModal, hideDailyImportReminder, showDailyImportReminder, updateAlarmModalNotice, updateAlarmNotice, updateAlarmToggle, updateCompactWindowMode, updateDcpTitleStatus, updateDebugPanel, updateFileStatus, updateHallVoiceTestStatus, updateNextMovieCard, updatePrivateBookingMonitor, updateScheduleImportStatus, updateScheduleVersionTime, updateSettingsForm, updateSettingsNotice, updateStatistics, setTableNotice, showAlarmModal } from './ui.js';
+import { bindSessionMarkerControls, createEmptyTable, renderMovieRows } from './table.js';
 import { bindSearch, matchesSearch } from './search.js';
 import { bindFilters, matchesFilters, populateDateFilterOptions, populateFilterOptions } from './filter.js';
 import { summarizeSessions } from './statistics.js';
@@ -25,6 +25,7 @@ const desktopWindow = globalThis.desktopWindow || null;
 const desktopSystemVolume = globalThis.desktopSystemVolume || null;
 const DAILY_REMINDER_STORAGE_KEY = 'movieScheduleAlarm.dailyReminder.v1';
 const ALARM_AUTO_DISMISS_MS = 60_000;
+const SESSION_MARKERS = new Set(['NORMAL', 'PRIVATE']);
 const restoredDcpTitleData = loadDcpTitleData();
 let desktopAlarmScheduleSignature = '';
 let unsubscribeDesktopAlarm = null;
@@ -152,6 +153,16 @@ const state = {
 const dailyReminderTimer = createDailyReminderTimer(() => {
   void checkDailyScheduleReminder();
 });
+
+// 將本機恢復或 UI 傳入的人工場次標記限制在既有白名單，避免損壞資料進入警報 IPC。
+function normalizeSessionMarker(value) {
+  return SESSION_MARKERS.has(value) ? value : 'NORMAL';
+}
+
+function normalizeLatestStartTime(value) {
+  const normalized = String(value || '').trim();
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(normalized) ? normalized : '';
+}
 
 // 將 Main Process 回傳的桌面警報狀態合併到集中 state，供既有 Debug Panel 顯示。
 function applyDesktopAlarmDebug(debugInfo) {
@@ -425,7 +436,9 @@ function createDesktopAlarmPayload(group) {
       hall: session.hall || '',
       title: session.displayTitle || session.title || '',
       language: session.language || '',
-      format: session.formatDisplay || session.format || ''
+      format: session.formatDisplay || session.format || '',
+      manualMarker: normalizeSessionMarker(session.manualMarker),
+      latestStartTime: normalizeLatestStartTime(session.latestStartTime)
     }))
   };
 }
@@ -435,7 +448,7 @@ async function syncDesktopAlarmSchedule() {
   if (!desktopAlarm) return;
   const payload = createDesktopAlarmPayload(state.nextSessionGroup);
   const signature = payload
-    ? `${payload.scheduleGeneration}|${payload.groupKey}|${payload.startTimestamp}|${payload.leadMinutes}|${payload.alarmEnabled}`
+    ? `${payload.scheduleGeneration}|${payload.groupKey}|${payload.startTimestamp}|${payload.leadMinutes}|${payload.alarmEnabled}|${payload.sessions.map(session => `${session.manualMarker}:${session.latestStartTime}`).join(',')}`
     : 'cancelled';
   if (signature === desktopAlarmScheduleSignature) return;
   desktopAlarmScheduleSignature = signature;
@@ -587,6 +600,17 @@ function updateNextMovieClock(now = new Date()) {
     : formatCountdown(0);
   updateNextMovieCard(presentation, countdown);
   const group = presentation.group;
+  const currentOperationalDateKey = getOperationalDateKey(state.sessions, now);
+  const pendingPrivateBookings = state.sessions.filter(session => (
+    session.manualMarker === 'PRIVATE'
+    && session.privateBookingStarted !== true
+    && (session.operationalDate || session.date) === currentOperationalDateKey
+  ));
+  const compactPendingPrivateBookings = pendingPrivateBookings.filter(session => session.privateBookingAlertDismissed === true);
+  updatePrivateBookingMonitor(pendingPrivateBookings, currentOperationalDateKey, sessionId => {
+    const session = state.sessions.find(item => item.id === sessionId);
+    if (session) updateSessionMarker(session.id, 'PRIVATE', session.latestStartTime, true);
+  });
   const compactPresentation = {
     type: presentation.type,
     theme: state.settings.theme,
@@ -598,11 +622,21 @@ function updateNextMovieClock(now = new Date()) {
     scheduleVersionTime: state.scheduleVersionTime,
     scheduleFileName: state.importedFileName,
     alarmAutoDismissEnabled: state.settings.alarmAutoDismissEnabled,
+    operationalDateKey: currentOperationalDateKey,
+    privateBookings: compactPendingPrivateBookings.map(session => ({
+      id: session.id || '',
+      hall: session.hall || '',
+      title: session.displayTitle || session.title || '',
+      start: session.start || '',
+      latestStartTime: normalizeLatestStartTime(session.latestStartTime)
+    })),
     sessions: (group?.sessions || []).map(session => ({
       hall: session.hall || '',
       title: session.displayTitle || session.title || '',
       language: session.language || '',
-      formats: session.formats?.length ? session.formats : [session.formatDisplay || session.format].filter(Boolean)
+      formats: session.formats?.length ? session.formats : [session.formatDisplay || session.format].filter(Boolean),
+      manualMarker: normalizeSessionMarker(session.manualMarker),
+      latestStartTime: normalizeLatestStartTime(session.latestStartTime)
     }))
   };
   void desktopWindow?.updateCompactPresentation?.(compactPresentation).catch(() => {});
@@ -685,6 +719,23 @@ function checkAlarmSchedule(now, previousTickAt, resumedFromBackground) {
 // 停止音效、關閉 Modal 並保留已觸發群組紀錄，避免停止後重新觸發同一場次。
 function stopActiveAlarm() {
   const stoppedGroupKey = state.activeAlarmGroup?.groupKey || '';
+  const stoppedPrivateSessionIds = new Set(
+    (state.activeAlarmGroup?.sessions || [])
+      .filter(session => session.manualMarker === 'PRIVATE')
+      .map(session => session.id)
+  );
+  if (stoppedPrivateSessionIds.size) {
+    state.sessions.forEach(session => {
+      if (stoppedPrivateSessionIds.has(session.id)) session.privateBookingAlertDismissed = true;
+    });
+    saveScheduleSnapshot({
+      sessions: state.sessions,
+      importedFileName: state.importedFileName,
+      importedAt: state.importedAt,
+      scheduleSourceType: state.scheduleSourceType,
+      scheduleVersionTime: state.scheduleVersionTime
+    });
+  }
   alarmChannel.stopAlarm(state.settings);
   state.activeAlarmGroup = null;
   state.activeAlarmAutoDismissAt = null;
@@ -834,6 +885,31 @@ function resetAlarmStateForImport() {
   state.coverageReminderKey = '';
   state.filterOptionsDateKey = '';
   syncAlarmRuntimeState();
+}
+
+// 將人工選擇的場次標記寫回唯一 sessions 並保存快照，不修改時間、排序、id 或警報 groupKey。
+function updateSessionMarker(sessionId, manualMarker, latestStartTime = '', privateBookingStarted = false) {
+  if (!sessionId || !SESSION_MARKERS.has(manualMarker)) return;
+  const target = state.sessions.find(session => session.id === sessionId);
+  const normalizedLatestStartTime = normalizeLatestStartTime(latestStartTime);
+  const normalizedStarted = manualMarker === 'PRIVATE' && privateBookingStarted === true;
+  if (!target || (normalizeSessionMarker(target.manualMarker) === manualMarker && normalizeLatestStartTime(target.latestStartTime) === normalizedLatestStartTime && target.privateBookingStarted === normalizedStarted)) return;
+  const wasPrivate = normalizeSessionMarker(target.manualMarker) === 'PRIVATE';
+  target.manualMarker = manualMarker;
+  target.latestStartTime = normalizedLatestStartTime;
+  target.privateBookingStarted = normalizedStarted;
+  target.privateBookingAlertDismissed = manualMarker === 'PRIVATE' && wasPrivate
+    ? target.privateBookingAlertDismissed === true
+    : false;
+  saveScheduleSnapshot({
+    sessions: state.sessions,
+    importedFileName: state.importedFileName,
+    importedAt: state.importedAt,
+    scheduleSourceType: state.scheduleSourceType,
+    scheduleVersionTime: state.scheduleVersionTime
+  });
+  desktopAlarmScheduleSignature = '';
+  applyFilters(new Date());
 }
 
 // 將 PDF Reader 的成功結果交給唯一資料流程，取代舊 sessions 並更新所有衍生畫面與排程。
@@ -1015,6 +1091,11 @@ function init() {
   bindFilters((filterName, filterValue) => {
     state[filterName] = filterValue;
     applyFilters();
+  });
+  bindSessionMarkerControls(updateSessionMarker);
+  desktopWindow?.onPrivateBookingStarted?.(sessionId => {
+    const session = state.sessions.find(item => item.id === sessionId && item.manualMarker === 'PRIVATE');
+    if (session) updateSessionMarker(session.id, 'PRIVATE', session.latestStartTime, true);
   });
   document.querySelector('#pdfFileInput').addEventListener('change', async event => {
     const file = event.target.files[0];

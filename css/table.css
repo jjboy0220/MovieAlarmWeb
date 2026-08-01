@@ -1,12 +1,25 @@
 .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--table-body); }
 table { width: 100%; min-width: 840px; border-collapse: collapse; background: var(--table-body); }
-th { padding: 10px 13px; background: var(--table-head); color: var(--table-head-ink); text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .3px; }
-td { padding: 13px; border-top: 1px solid var(--line); color: var(--table-row); }
+th { padding: 10px 13px; background: var(--table-head); color: var(--table-head-ink); text-align: center; font-size: 11px; font-weight: 700; letter-spacing: .3px; }
+td { padding: 13px; border-top: 1px solid var(--line); color: var(--table-row); text-align: center; vertical-align: middle; }
 td:first-child { color: var(--ink); }
 .remaining-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
 tbody tr:not(.date-group-row) { background: var(--table-body); transition: background 160ms ease; }
 tbody tr:not(.date-group-row):nth-child(even) { background: var(--table-row-even); }
 tbody tr:not(.date-group-row):hover { background: var(--table-row-hover); }
-.date-group-row td { padding: 15px 13px 9px; border-top: 2px solid var(--line); background: var(--date-group-bg); color: var(--date-group-ink); font-size: 13px; font-weight: bold; letter-spacing: .35px; }
+.date-group-row td { padding: 15px 13px 9px; border-top: 2px solid var(--line); background: var(--date-group-bg); color: var(--date-group-ink); font-size: 13px; font-weight: bold; letter-spacing: .35px; text-align: center; }
 .date-group-row:first-child td { border-top: 0; }
 .empty-state { margin: 0; padding: 34px; text-align: center; color: var(--muted); }
+/* 人工場次標記只修改單筆 session 的營運標籤，不影響時間與播放狀態。 */
+.private-booking-control { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid var(--line); border-radius: 999px; color: var(--table-row); font-size: 11px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.private-booking-control input { width: 14px; height: 14px; margin: 0; accent-color: #f97316; }
+.private-booking-control:has(input:checked) { border-color: #fb923c; background: rgba(249, 115, 22, .18); color: #fdba74; }
+.private-booking-fields { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.private-time-field { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; color: var(--table-row); font-size: 10px; font-weight: 800; line-height: 1; }
+.private-time-field.is-hidden { display: none; }
+.private-started-control { display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; border: 1px solid #22c55e; border-radius: 999px; color: #86efac; font-size: 11px; font-weight: 900; cursor: pointer; }
+.private-started-control.is-hidden { display: none; }
+.private-started-control input { width: 14px; height: 14px; margin: 0; accent-color: #22c55e; }
+.private-latest-time { width: 62px; min-width: 62px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; }
+.private-latest-time:invalid:not(:placeholder-shown) { border-color: #ef4444; }
+.private-latest-time:disabled { display: none; }

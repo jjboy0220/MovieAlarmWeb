@@ -29,6 +29,57 @@ function createBadge(text, extraClass = '') {
   return badge;
 }
 
+// SPECIAL 是規格修飾詞；在小視窗與原始視窗一致合併成單一規格 Badge。
+function combineSpecialFormats(formats) {
+  const normalized = [...new Set((Array.isArray(formats) ? formats : []).filter(Boolean))];
+  if (!normalized.includes('SPECIAL') || normalized.length === 1) return normalized;
+  const baseFormats = normalized.filter(format => format !== 'SPECIAL');
+  const combinedBase = baseFormats.includes('3D') && baseFormats.includes('DIG')
+    ? baseFormats.filter(format => format !== '3D' && format !== 'DIG').concat('3D / DIG').join(' / ')
+    : baseFormats.join(' / ');
+  return [`${combinedBase} SPECIAL`];
+}
+
+function createPrivateBookingNotice(session) {
+  if (session.manualMarker !== 'PRIVATE') return null;
+  const notice = document.createElement('p');
+  notice.className = 'session-private-notice';
+  notice.textContent = `此場為包廳場次，請留意最晚開播時間為（${session.latestStartTime || '尚未設定'}）`;
+  return notice;
+}
+
+function renderPrivateBookingMonitor(sessions = [], operationalDateKey = '') {
+  const monitor = $('#compactPrivateMonitor');
+  monitor.replaceChildren();
+  monitor.hidden = !sessions.length;
+  if (!sessions.length) return;
+  const heading = document.createElement('strong');
+  heading.textContent = `包廳待開播｜${operationalDateKey.replaceAll('-', '/')}`;
+  monitor.append(heading);
+  sessions.forEach(session => {
+    const item = document.createElement('div');
+    item.className = 'compact-private-monitor-item';
+    const text = document.createElement('span');
+    text.textContent = `${session.hall || '—'}｜${session.title || '未命名場次'}｜原訂 ${session.start || '--:--'}｜最晚 ${session.latestStartTime || '尚未設定'}`;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = '▶ 確認開播';
+    button.title = '場次實際開播後按此確認並移除待開播提醒';
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      button.textContent = '處理中…';
+      try {
+        await compactApi.markPrivateBookingStarted(session.id);
+      } catch {
+        button.disabled = false;
+        button.textContent = '▶ 確認開播';
+      }
+    });
+    item.append(text, button);
+    monitor.append(item);
+  });
+}
+
 // 以 Main Renderer 提供的唯讀顯示資料更新小視窗，不自行計算場次或倒數。
 function renderPresentation(presentation = {}) {
   latestPresentation = presentation;
@@ -37,6 +88,8 @@ function renderPresentation(presentation = {}) {
   $('#compactCard').classList.remove('alarm-mode');
   $('.compact-header > span').textContent = 'NEXT MOVIE';
   $('#compactAutoDismissNote').hidden = !presentation.alarmAutoDismissEnabled;
+  const sessions = Array.isArray(presentation.sessions) ? presentation.sessions : [];
+  $('#compactPrivateBookingNotice').hidden = true;
   $('#stopAlarmButton').hidden = true;
   const compactWeekday = formatCompactWeekday(presentation.weekday);
   $('#compactDate').textContent = presentation.date && presentation.date !== '--'
@@ -50,6 +103,7 @@ function renderPresentation(presentation = {}) {
   $('#compactScheduleVersion').textContent = presentation.scheduleVersionTime
     ? `場次版本：${presentation.scheduleVersionTime}`
     : '場次版本：無法辨識';
+  renderPrivateBookingMonitor(Array.isArray(presentation.privateBookings) ? presentation.privateBookings : [], presentation.operationalDateKey || '');
   const container = $('#compactSessions');
   container.classList.toggle('many-sessions', presentation.sessions?.length > 1);
   container.replaceChildren();
@@ -70,8 +124,10 @@ function renderPresentation(presentation = {}) {
       const badges = document.createElement('div');
       badges.className = 'badges';
       if (session.language) badges.append(createBadge(session.language));
-      (session.formats || []).filter(Boolean).forEach(format => badges.append(createBadge(format, 'format')));
+      combineSpecialFormats(session.formats).forEach(format => badges.append(createBadge(format, 'format')));
       card.append(badges);
+      const privateNotice = createPrivateBookingNotice(session);
+      if (privateNotice) card.append(privateNotice);
       container.append(card);
     });
   }
@@ -88,6 +144,7 @@ function renderAlarm(payload = {}) {
   $('#compactTime').textContent = payload.timeLabel || '--:--';
   $('#compactCountdown').textContent = '00:00:00';
   $('#compactAutoDismissNote').hidden = !latestPresentation.alarmAutoDismissEnabled;
+  $('#compactPrivateBookingNotice').hidden = true;
   $('#stopAlarmButton').hidden = false;
   const container = $('#compactSessions');
   container.classList.toggle('many-sessions', sessions.length > 1);
@@ -104,8 +161,10 @@ function renderAlarm(payload = {}) {
     badges.className = 'badges';
     if (session.language) badges.append(createBadge(session.language));
     const formats = session.formats?.length ? session.formats : [session.format].filter(Boolean);
-    formats.forEach(format => badges.append(createBadge(format, 'format')));
+    combineSpecialFormats(formats).forEach(format => badges.append(createBadge(format, 'format')));
     card.append(badges);
+    const privateNotice = createPrivateBookingNotice(session);
+    if (privateNotice) card.append(privateNotice);
     container.append(card);
   });
   requestAnimationFrame(requestCompactResize);

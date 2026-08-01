@@ -4,12 +4,17 @@ import { escapeHtml, formatCompactChineseDate } from './utils.js';
 
 let renderedGroupKey = '';
 
+function renderPrivateBookingNotice(session, className) {
+  if (session.manualMarker !== 'PRIVATE') return '';
+  return `<p class="${className}">此場為包廳場次，請留意最晚開播時間為（${escapeHtml(session.latestStartTime || '尚未設定')}）</p>`;
+}
+
 // 統一查詢單一 DOM 節點，避免各 UI 函式重複撰寫選擇器。
 const $ = selector => document.querySelector(selector);
 
 // 以群組開播時間與場次識別碼建立穩定鍵值，避免每秒重建相同的場次清單。
 function getSessionGroupKey(group) {
-  return `${group.startDateTime}|${group.sessions.map(session => `${session.id || session.hall}-${session.displayTitle || session.title}`).join('|')}`;
+  return `${group.startDateTime}|${group.sessions.map(session => `${session.id || session.hall}-${session.displayTitle || session.title}-${session.manualMarker || 'NORMAL'}-${session.latestStartTime || ''}`).join('|')}`;
 }
 
 // 將完整下一場卡片清單固定移到共用開演時間上方，且只沿用既有 DOM 節點。
@@ -28,7 +33,7 @@ function renderNextSession(session) {
   const formatBadges = renderFormatBadges(session);
   const metadataBadges = [languageBadge, formatBadges].filter(Boolean).join('');
 
-  return `<article class="next-session-item"><div class="next-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="next-session-title" title="${escapeHtml(session.originalTitle || session.title)}">${escapeHtml(session.displayTitle || session.title)}</strong><div class="next-session-badges">${metadataBadges || '<span class="next-session-unlabeled">未標示語言或格式</span>'}</div></article>`;
+  return `<article class="next-session-item"><div class="next-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="next-session-title" title="${escapeHtml(session.originalTitle || session.title)}">${escapeHtml(session.displayTitle || session.title)}</strong><div class="next-session-badges">${metadataBadges || '<span class="next-session-unlabeled">未標示語言或格式</span>'}</div>${renderPrivateBookingNotice(session, 'next-session-private-notice')}</article>`;
 }
 
 // 將單一警報場次渲染為 Modal 內的資訊卡，電影名稱只顯示純 title。
@@ -37,7 +42,7 @@ function renderAlarmSession(session) {
   const formatBadges = renderFormatBadges(session);
   const metadataBadges = [languageBadge, formatBadges].filter(Boolean).join('');
 
-  return `<article class="alarm-session-item"><div class="alarm-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="alarm-session-title" title="${escapeHtml(session.originalTitle || session.title)}">${escapeHtml(session.displayTitle || session.title)}</strong><div class="alarm-session-badges">${metadataBadges || '<span class="alarm-session-unlabeled">未標示語言或格式</span>'}</div></article>`;
+  return `<article class="alarm-session-item"><div class="alarm-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="alarm-session-title" title="${escapeHtml(session.originalTitle || session.title)}">${escapeHtml(session.displayTitle || session.title)}</strong><div class="alarm-session-badges">${metadataBadges || '<span class="alarm-session-unlabeled">未標示語言或格式</span>'}</div>${renderPrivateBookingNotice(session, 'alarm-session-private-notice')}</article>`;
 }
 
 // 渲染同一開播時間的所有場次；日期、時間與倒數由卡片上方共用區塊顯示一次。
@@ -106,6 +111,8 @@ export function showAlarmModal(group, audioNotice = '', leadMinutes = 0) {
   $('#alarmModalDate').textContent = formatCompactChineseDate(firstSession.date, firstSession.weekday);
   $('#alarmModalTime').textContent = firstSession.start;
   $('#alarmSessionList').innerHTML = group.sessions.map(renderAlarmSession).join('');
+  const privateBookingNotice = $('#alarmPrivateBookingNotice');
+  privateBookingNotice.hidden = true;
   modal.hidden = false;
   document.body.classList.add('alarm-active');
   $('#nextMovieCard').classList.add('alarm-active');
@@ -341,6 +348,42 @@ export function updateFileStatus(message) {
   $('#fileStatus').textContent = message;
 }
 
+// 包廳以人工已開播狀態為準；關閉原訂時間警報後仍持續顯示，直到使用者勾選已開播。
+export function updatePrivateBookingMonitor(sessions = [], operationalDateKey = '', onStarted = () => {}) {
+  let monitor = $('#privateBookingMonitor');
+  if (!monitor) {
+    monitor = document.createElement('section');
+    monitor.id = 'privateBookingMonitor';
+    monitor.className = 'private-booking-monitor';
+    monitor.setAttribute('aria-live', 'polite');
+    $('#nextMovieCard').append(monitor);
+  }
+  monitor.replaceChildren();
+  monitor.hidden = !sessions.length;
+  if (!sessions.length) return;
+
+  const heading = document.createElement('strong');
+  heading.textContent = `包廳待開播｜${operationalDateKey.replaceAll('-', '/')}`;
+  monitor.append(heading);
+  sessions.forEach(session => {
+    const item = document.createElement('div');
+    item.className = 'private-booking-monitor-item';
+    const text = document.createElement('span');
+    text.textContent = `${session.hall || '未標示影廳'}｜${session.displayTitle || session.title || '未命名場次'}｜原訂 ${session.start || '--:--'}｜最晚 ${session.latestStartTime || '尚未設定'}`;
+    const startedButton = document.createElement('button');
+    startedButton.type = 'button';
+    startedButton.textContent = '▶ 確認開播';
+    startedButton.title = '場次實際開播後按此確認並移除待開播提醒';
+    startedButton.addEventListener('click', () => {
+      startedButton.disabled = true;
+      startedButton.textContent = '處理中…';
+      onStarted(session.id);
+    });
+    item.append(text, startedButton);
+    monitor.append(item);
+  });
+}
+
 // 顯示目前 PDF 檔名與報表頁尾版本時間，長檔名保留完整提示文字。
 export function updateScheduleVersionTime(versionTime = '', fileName = '') {
   const value = String(versionTime || '').trim();
@@ -452,7 +495,11 @@ export function configureCinemaUi() {
   const formatFilter = $('#formatFilter');
   formatFilter.replaceChildren(new Option('所有規格', 'ALL'), ...FORMATS.map(format => new Option(format, format)));
   const hallVoiceSelect = $('#hallVoiceTestSelect');
-  hallVoiceSelect.replaceChildren(new Option('預設警報聲', 'DEFAULT_ALARM'), ...HALLS.map(hall => new Option(hall, hall)));
+  hallVoiceSelect.replaceChildren(
+    new Option('預設警報聲', 'DEFAULT_ALARM'),
+    ...HALLS.map(hall => new Option(`${hall} 開播`, hall)),
+    ...HALLS.map(hall => new Option(`${hall} 包廳提醒`, `PRIVATE:${hall}`))
+  );
   document.documentElement.dataset.cinema = CINEMA_CODE;
   const brandVersion = document.querySelector('.brand small');
   if (brandVersion) brandVersion.textContent = `${CINEMA_CODE} V${VERSION.replace(/\.0$/, '')}`;

@@ -61,6 +61,12 @@ contextBridge.exposeInMainWorld('desktopWindow', Object.freeze({
   setCompactMode: enabled => ipcRenderer.invoke('desktop-window:set-compact-mode', enabled),
   resizeCompact: contentHeight => ipcRenderer.invoke('desktop-window:resize-compact', contentHeight),
   updateCompactPresentation: presentation => ipcRenderer.invoke('desktop-window:update-compact-presentation', presentation),
+  onPrivateBookingStarted: callback => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, sessionId) => callback(sessionId);
+    ipcRenderer.on('desktop-private-booking:started', listener);
+    return () => ipcRenderer.removeListener('desktop-private-booking:started', listener);
+  },
   onCompactModeChanged: callback => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, payload) => callback(payload);

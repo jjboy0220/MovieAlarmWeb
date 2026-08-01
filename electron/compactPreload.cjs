@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('compactWindow', Object.freeze({
   showFull: () => ipcRenderer.invoke('compact-window:show-full'),
   resize: contentHeight => ipcRenderer.invoke('compact-window:resize', contentHeight),
   stopAlarm: () => ipcRenderer.invoke('compact-window:stop-alarm'),
+  markPrivateBookingStarted: sessionId => ipcRenderer.invoke('compact-window:private-booking-started', sessionId),
   showContextMenu: () => ipcRenderer.invoke('compact-window:show-context-menu'),
   onPresentation: callback => {
     if (typeof callback !== 'function') return () => {};

@@ -2,6 +2,7 @@ import { CINEMA_CONFIG } from './config.js';
 
 const ALARM_AUDIO_SOURCE = 'assets/alarm.wav';
 const HALL_AUDIO_SOURCES = Object.freeze(CINEMA_CONFIG.hallAudioSources);
+const PRIVATE_BOOKING_AUDIO_SOURCES = Object.freeze(CINEMA_CONFIG.privateBookingAudioSources || {});
 const HALL_ANNOUNCEMENTS = Object.freeze(CINEMA_CONFIG.hallAnnouncements);
 let sharedAlarmChannel = null;
 
@@ -35,9 +36,17 @@ function getHallAnnouncement(hall) {
   return HALL_ANNOUNCEMENTS[normalizedHall] || (normalizedHall ? `${normalizedHall} 開播` : '場次開播');
 }
 
+function getPrivateBookingAnnouncement(hall) {
+  return `${getHallAnnouncement(hall).replace(/\s*開播$/, '')}包廳提醒`;
+}
+
 // 取得專案內已確認的影廳錄音；未知影廳沒有錄音時由 Windows 中文語音安全備援。
 function getHallAudioSource(hall) {
   return HALL_AUDIO_SOURCES[String(hall || '').trim().toUpperCase()] || '';
+}
+
+function getPrivateBookingAudioSource(hall) {
+  return PRIVATE_BOOKING_AUDIO_SOURCES[String(hall || '').trim().toUpperCase()] || '';
 }
 
 // 建立全站唯一的 Audio Alarm Channel，避免切換警報或重新匯入時重複建立音效物件。
@@ -127,9 +136,15 @@ export function createAlarmChannel() {
   // 在設定中心播放一次所選影廳語音；正式警報中不允許試聽以避免重疊。
   function previewHallAnnouncement(hall, settings) {
     const isDefaultAlarmPreview = hall === 'DEFAULT_ALARM';
-    const message = isDefaultAlarmPreview ? '預設警報聲' : getHallAnnouncement(hall);
+    const isPrivateBookingPreview = String(hall || '').startsWith('PRIVATE:');
+    const previewHall = isPrivateBookingPreview ? String(hall).slice('PRIVATE:'.length) : hall;
+    const message = isDefaultAlarmPreview
+      ? '預設警報聲'
+      : isPrivateBookingPreview ? getPrivateBookingAnnouncement(previewHall) : getHallAnnouncement(previewHall);
     if (runtime.active) return Promise.resolve({ success: false, message: '正式警報播放中，請先停止警報再測試語音' });
-    const recordedSource = isDefaultAlarmPreview ? ALARM_AUDIO_SOURCE : getHallAudioSource(hall);
+    const recordedSource = isDefaultAlarmPreview
+      ? ALARM_AUDIO_SOURCE
+      : isPrivateBookingPreview ? getPrivateBookingAudioSource(previewHall) : getHallAudioSource(previewHall);
     if (recordedSource && audio) {
       speechGeneration += 1;
       speechSynthesis?.cancel();
@@ -226,14 +241,15 @@ export function createAlarmChannel() {
   async function startAlarm(settings, group = null) {
     runtime.active = true;
     if (isSilentMode(settings)) return { audioStarted: false, message: '' };
-    if (isHallVoiceMode(settings)) {
+    const hasPrivateBooking = (group?.sessions || []).some(session => session.manualMarker === 'PRIVATE');
+    if (isHallVoiceMode(settings) || hasPrivateBooking) {
       if (!audio && (!speechSynthesis || typeof SpeechUtterance !== 'function')) {
         runtime.audioPlayError = '目前 Windows 環境不支援廳別語音播報';
         return { audioStarted: false, message: runtime.audioPlayError };
       }
       const announcements = (group?.sessions || []).map(session => ({
-        message: getHallAnnouncement(session.hall),
-        source: getHallAudioSource(session.hall)
+        message: session.manualMarker === 'PRIVATE' ? getPrivateBookingAnnouncement(session.hall) : getHallAnnouncement(session.hall),
+        source: session.manualMarker === 'PRIVATE' ? getPrivateBookingAudioSource(session.hall) : getHallAudioSource(session.hall)
       }));
       if (!announcements.length) announcements.push({ message: '場次開播', source: '' });
       const generation = ++speechGeneration;

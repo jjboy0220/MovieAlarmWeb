@@ -24,8 +24,12 @@ function renderThreeDDigBadge() {
 }
 
 // 將已確認的 DIG 與 SPECIAL 組合顯示為單一營運規格 Badge。
-function renderDigSpecialBadge() {
-  return '<span class="format-badge dig-special">DIG SPECIAL</span>';
+function renderSpecialFormatBadge(formats) {
+  const baseFormats = formats.filter(format => format !== 'SPECIAL');
+  const combinedLabel = baseFormats.includes('3D') && baseFormats.includes('DIG')
+    ? `${baseFormats.filter(format => format !== '3D' && format !== 'DIG').concat('3D / DIG').join(' / ')} SPECIAL`
+    : `${baseFormats.join(' / ')} SPECIAL`;
+  return `<span class="format-badge dig-special">${escapeHtml(combinedLabel)}</span>`;
 }
 
 // 將場次格式渲染為 Badge；3D 與 DIG 同時存在時固定合併為單一 Badge。
@@ -33,14 +37,15 @@ export function renderFormatBadges(session) {
   const formats = getSessionFormats(session);
   if (!formats.length) return '';
 
+  if (formats.includes('SPECIAL') && formats.length > 1) {
+    return `<span class="format-badge-group" aria-label="${escapeHtml(formatSessionFormats(session))}">${renderSpecialFormatBadge(formats)}</span>`;
+  }
+
   const hasThreeDAndDig = formats.includes('3D') && formats.includes('DIG');
-  const hasDigSpecial = formats.includes('DIG') && formats.includes('SPECIAL');
   const individualFormats = formats.filter(format => format !== '3D' && format !== 'DIG' && format !== 'SPECIAL');
   const badges = hasThreeDAndDig
-    ? [...individualFormats.map(renderSingleFormatBadge), ...(hasDigSpecial ? [renderSingleFormatBadge('SPECIAL')] : []), renderThreeDDigBadge()]
-    : hasDigSpecial
-      ? [...individualFormats.map(renderSingleFormatBadge), renderDigSpecialBadge()]
-      : formats.map(renderSingleFormatBadge);
+    ? [...individualFormats.map(renderSingleFormatBadge), renderThreeDDigBadge()]
+    : formats.map(renderSingleFormatBadge);
 
   return `<span class="format-badge-group" aria-label="${escapeHtml(formatSessionFormats(session))}">${badges.join('')}</span>`;
 }

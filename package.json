@@ -1,7 +1,7 @@
 {
   "name": "movie-schedule-alarm",
   "productName": "Movie Schedule Alarm",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Movie Schedule Alarm Windows Desktop",
   "author": {
     "name": "Jim Chang",
@@ -58,10 +58,10 @@
       ]
     },
     "portable": {
-      "artifactName": "Movie-Schedule-Alarm-V2.0-Portable.${ext}"
+      "artifactName": "Movie-Schedule-Alarm-V2.1-Portable.${ext}"
     },
     "nsis": {
-      "artifactName": "(TC)Movie-Schedule-Alarm-V2.0-Setup.${ext}"
+      "artifactName": "(TC)Movie-Schedule-Alarm-V2.1-Setup.${ext}"
     }
   }
 }

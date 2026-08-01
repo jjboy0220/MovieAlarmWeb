@@ -63,6 +63,11 @@ body.alarm-active::before { position: fixed; inset: 0; z-index: 15; background: 
 .alarm-session-item .hall-badge, .alarm-session-item .format-badge, .alarm-session-item .language-badge { padding: 10px 18px; font-size: clamp(1.2rem, 2.4vw, 1.5rem); }
 .alarm-session-unlabeled { color: var(--alarm-muted); font-size: .82rem; font-weight: 700; }
 .alarm-audio-notice { margin: 18px 0 0; padding: 10px 12px; border: 1px solid var(--alarm-border); border-radius: 10px; background: rgba(249, 115, 22, .12); color: var(--alarm-text); font-size: .9rem; font-weight: 700; }
+.alarm-private-booking-notice { margin: 18px 0 0; padding: 12px 14px; border: 1px solid #fb923c; border-radius: 10px; background: rgba(234, 88, 12, .18); color: #fed7aa; font-size: 1rem; font-weight: 900; }
+.alarm-private-booking-notice[hidden] { display: none; }
+.alarm-session-private-notice { width: fit-content; max-width: 100%; margin: 12px auto 0; padding: 10px 14px; border: 1px solid #fb923c; border-radius: 10px; background: rgba(234, 88, 12, .22); color: #fed7aa; font-size: 1.05rem; font-weight: 900; line-height: 1.4; text-align: center; }
+body.light .alarm-session-private-notice { background: #ffedd5; color: #9a3412; }
+body.light .alarm-private-booking-notice { background: #ffedd5; color: #9a3412; }
 .alarm-auto-dismiss-note { margin: 14px 0 0; color: var(--alarm-muted); font-size: .82rem; font-weight: 700; text-align: center; }
 .alarm-auto-dismiss-note[hidden] { display: none; }
 .stop-alarm-button { width: min(100%, 290px); margin-top: 22px; padding: 14px 20px; border: 1px solid var(--alarm-border-strong); border-radius: 12px; background: var(--alarm-border); color: #ffffff; cursor: pointer; font: inherit; font-size: 1rem; font-weight: 900; letter-spacing: .04em; transition: background 160ms ease, transform 160ms ease; }

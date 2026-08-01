@@ -12,6 +12,11 @@ export const MM_CINEMA_CONFIG = Object.freeze({
     C8: 'assets/hall-voice/c8.mp3', C9: 'assets/hall-voice/c9.mp3',
     C10: 'cinemas/MM/assets/hall-voice/c10.mp3'
   },
+  privateBookingAudioSources: {
+    C1: 'assets/private-booking-voice/c1.mp3', C2: 'assets/private-booking-voice/c2.mp3', C3: 'assets/private-booking-voice/c3.mp3',
+    C5: 'assets/private-booking-voice/c5.mp3', C6: 'assets/private-booking-voice/c6.mp3', C7: 'assets/private-booking-voice/c7.mp3',
+    C8: 'assets/private-booking-voice/c8.mp3', C9: 'assets/private-booking-voice/c9.mp3'
+  },
   hallAnnouncements: {
     C1: '一廳，開播。', C2: '二廳，開播。', C3: '三廳，開播。', C5: '五廳，開播。', C6: '六廳，開播。',
     C7: '七廳，開播。', C8: '八廳，開播。', C9: '九廳，開播。', C10: '十廳，開播。'

@@ -78,11 +78,12 @@ export function getSessionFormats(session) {
 export function formatFormatsForDisplay(formats) {
   const normalizedFormats = [...new Set((Array.isArray(formats) ? formats : []).map(normalizeText).filter(Boolean))];
   const hasThreeDAndDig = normalizedFormats.includes('3D') && normalizedFormats.includes('DIG');
-  const hasDigSpecial = normalizedFormats.includes('DIG') && normalizedFormats.includes('SPECIAL');
+  const hasSpecial = normalizedFormats.includes('SPECIAL');
   const remainingFormats = normalizedFormats.filter(format => format !== '3D' && format !== 'DIG' && format !== 'SPECIAL');
-  const displayFormats = hasThreeDAndDig
-    ? [...remainingFormats, ...(hasDigSpecial ? ['SPECIAL'] : []), '3D / DIG']
-    : hasDigSpecial ? [...remainingFormats, 'DIG SPECIAL'] : normalizedFormats;
+  const baseFormats = hasThreeDAndDig ? [...remainingFormats, '3D / DIG'] : normalizedFormats.filter(format => format !== 'SPECIAL');
+  const displayFormats = hasSpecial && baseFormats.length
+    ? [baseFormats.map(format => `${format} SPECIAL`).join(' / ')]
+    : normalizedFormats;
   return displayFormats.join(' / ');
 }
 

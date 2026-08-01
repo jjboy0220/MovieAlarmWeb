@@ -343,6 +343,14 @@ function bindDesktopWindowIpc() {
     }
     return { requested: true };
   });
+  ipcMain.handle('compact-window:private-booking-started', (event, sessionId) => {
+    if (!compactWindow || event.sender !== compactWindow.webContents) throw new Error('拒絕未授權的包廳狀態來源');
+    if (typeof sessionId !== 'string' || !sessionId || sessionId.length > 200) throw new TypeError('包廳場次識別碼無效');
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('desktop-private-booking:started', sessionId);
+    }
+    return { requested: true };
+  });
   ipcMain.handle('compact-window:show-context-menu', event => {
     if (!compactWindow || event.sender !== compactWindow.webContents) throw new Error('拒絕未授權的小視窗選單來源');
     const menu = Menu.buildFromTemplate([
