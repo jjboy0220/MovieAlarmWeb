@@ -11,7 +11,7 @@ module.exports = {
     name: 'movie-schedule-alarm-mm',
     productName: '(MM) Movie Schedule Alarm',
     cinemaCode: 'MM',
-    version: basePackage.version,
+    version: '2.0.0',
     desktopAppId: 'com.moviealarm.schedule.mm'
   },
   files: [...basePackage.build.files, '!cinemas/TC/**/*', '!assets/hall-voice/gc1.mp3', '!assets/hall-voice/gc2.mp3'],
