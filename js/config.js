@@ -1,11 +1,14 @@
 const requestedCinemaCode = new URLSearchParams(globalThis.location?.search || '').get('cinema')?.toUpperCase() || 'TC';
 const isMmCinema = requestedCinemaCode === 'MM';
+const isTeCinema = requestedCinemaCode === 'TE';
 const selectedCinemaModule = isMmCinema
   ? await import('../cinemas/MM/config.js')
-  : await import('../cinemas/TC/config.js');
+  : isTeCinema ? await import('../cinemas/TE/config.js') : await import('../cinemas/TC/config.js');
 
 // 只載入 Electron 傳入或瀏覽器查詢參數指定的館別設定，未知代號安全回到 TC。
-export const CINEMA_CONFIG = isMmCinema ? selectedCinemaModule.MM_CINEMA_CONFIG : selectedCinemaModule.TC_CINEMA_CONFIG;
+export const CINEMA_CONFIG = isMmCinema
+  ? selectedCinemaModule.MM_CINEMA_CONFIG
+  : isTeCinema ? selectedCinemaModule.TE_CINEMA_CONFIG : selectedCinemaModule.TC_CINEMA_CONFIG;
 
 // 集中保留應用程式名稱、館別版本、廳別與可辨識的放映規格。
 export const APP_NAME = 'Movie Schedule Alarm';

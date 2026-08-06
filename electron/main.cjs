@@ -4,8 +4,13 @@ const { createAlarmCoordinator } = require('./alarmCoordinator.cjs');
 const { createSystemVolumeBridge } = require('./systemVolumeBridge.cjs');
 
 const packageMetadata = require('../package.json');
-const CINEMA_CODE = String(packageMetadata.cinemaCode || process.argv.find(argument => argument.startsWith('--cinema='))?.split('=')[1] || 'TC').toUpperCase() === 'MM' ? 'MM' : 'TC';
-const WINDOWS_APP_USER_MODEL_ID = packageMetadata.desktopAppId || (CINEMA_CODE === 'MM' ? 'com.moviealarm.schedule.mm' : 'com.moviealarm.schedule');
+const requestedCinemaCode = String(packageMetadata.cinemaCode || process.argv.find(argument => argument.startsWith('--cinema='))?.split('=')[1] || 'TC').toUpperCase();
+const CINEMA_CODE = ['TC', 'MM', 'TE'].includes(requestedCinemaCode) ? requestedCinemaCode : 'TC';
+const WINDOWS_APP_USER_MODEL_ID = packageMetadata.desktopAppId || {
+  TC: 'com.moviealarm.schedule',
+  MM: 'com.moviealarm.schedule.mm',
+  TE: 'com.moviealarm.schedule.te'
+}[CINEMA_CODE];
 const DESKTOP_PRODUCT_NAME = packageMetadata.productName || 'Movie Schedule Alarm';
 
 let mainWindow = null;

@@ -1,6 +1,21 @@
 import { FORMATS, LANGUAGE_MAP } from './config.js';
 import { formatFormatsForDisplay, normalizeText } from './utils.js';
 
+// 依館別格式白名單辨識單字或多字規格，並讓 DIG FAN 取代其內含的 DIG 避免重複 Badge。
+export function detectConfiguredFormats(tokens, configuredFormats = FORMATS) {
+  const normalizedTokens = (Array.isArray(tokens) ? tokens : []).map(token => normalizeText(token).toUpperCase()).filter(Boolean);
+  const detected = [...new Set((Array.isArray(configuredFormats) ? configuredFormats : [])
+    .map(format => normalizeText(format).toUpperCase())
+    .filter(format => {
+      const formatTokens = format.split(' ').filter(Boolean);
+      return formatTokens.length && normalizedTokens.some((token, index) => (
+        token === formatTokens[0]
+        && normalizedTokens.slice(index, index + formatTokens.length).join(' ') === format
+      ));
+    }))];
+  return detected.filter(format => !detected.some(compound => compound !== format && compound.includes(' ') && compound.split(' ').includes(format)));
+}
+
 // 解析實際場次表的括號前綴，例如「(IMAX 3D J)CONAN」。
 export function parseFilmTitle(value) {
   const rawTitle = normalizeText(value);
@@ -11,7 +26,7 @@ export function parseFilmTitle(value) {
   }
 
   const tokens = prefixMatch[1].toUpperCase().split(/\s+/).filter(Boolean);
-  const detectedFormats = [...new Set(tokens.filter(token => FORMATS.includes(token)))];
+  const detectedFormats = detectConfiguredFormats(tokens);
   const isKnownConanSpecialError = tokens.includes('CONAN') && tokens.includes('SPECIAL') && !tokens.includes('DIG');
   const formats = isKnownConanSpecialError ? ['DIG', ...detectedFormats] : detectedFormats;
   const formatDisplay = formatFormatsForDisplay(formats);

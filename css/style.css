@@ -97,6 +97,10 @@
   --badge-dig-ink: #fdba74;
   --badge-dig-border: rgba(253, 186, 116, .45);
   --badge-dig-hover: rgba(194, 65, 12, .30);
+  --badge-dig-fan-bg: rgba(8, 145, 178, .26);
+  --badge-dig-fan-ink: #67e8f9;
+  --badge-dig-fan-border: rgba(103, 232, 249, .72);
+  --badge-dig-fan-hover: rgba(8, 145, 178, .38);
   --badge-titan-bg: rgba(109, 40, 217, .20);
   --badge-titan-ink: #ddd6fe;
   --badge-titan-border: rgba(196, 181, 253, .45);
@@ -301,6 +305,10 @@ body.light {
   --badge-dig-ink: #c2410c;
   --badge-dig-border: #fdba74;
   --badge-dig-hover: #fed7aa;
+  --badge-dig-fan-bg: #cffafe;
+  --badge-dig-fan-ink: #0e7490;
+  --badge-dig-fan-border: #22d3ee;
+  --badge-dig-fan-hover: #a5f3fc;
   --badge-titan-bg: #ede9fe;
   --badge-titan-ink: #6d28d9;
   --badge-titan-border: #c4b5fd;

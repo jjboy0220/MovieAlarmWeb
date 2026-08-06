@@ -83,7 +83,7 @@ export function formatFormatsForDisplay(formats) {
   const baseFormats = hasThreeDAndDig ? [...remainingFormats, '3D / DIG'] : normalizedFormats.filter(format => format !== 'SPECIAL');
   const displayFormats = hasSpecial && baseFormats.length
     ? [baseFormats.map(format => `${format} SPECIAL`).join(' / ')]
-    : normalizedFormats;
+    : baseFormats;
   return displayFormats.join(' / ');
 }
 
