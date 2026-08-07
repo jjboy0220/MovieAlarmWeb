@@ -1,8 +1,9 @@
-// TE 影城專屬 V1.0 設定；只保留台中大遠百實際廳別與場次表規格。
+// TE 影城專屬 V1.1 設定；只保留台中大遠百實際廳別與場次表規格。
 export const TE_CINEMA_CONFIG = Object.freeze({
   code: 'TE',
-  version: '1.0.0',
+  version: '1.1.0',
   appDisplayName: '(TE) Movie Schedule Alarm',
+  includeFinalOperationalDayOvernight: true,
   monitorTitle: '台中大遠百威秀影城場次監控',
   halls: ['C1', 'C2', 'C3', 'C5', 'C6', 'C7', 'C8'],
   formats: ['DIG', 'DIG FAN', 'IMAX', '3D', 'LIVE', 'SPECIAL'],

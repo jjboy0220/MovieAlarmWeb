@@ -1,6 +1,6 @@
 const basePackage = require('../../package.json');
 
-// 建立可與 TC、MM 並存的 TE V1.0 安裝設定，並只打包 TE 使用的館別資產。
+// 建立可與 TC、MM 並存的 TE V1.1 安裝設定，並只打包 TE 使用的館別資產。
 module.exports = {
   ...basePackage.build,
   appId: 'com.moviealarm.schedule.te',
@@ -11,7 +11,7 @@ module.exports = {
     name: 'movie-schedule-alarm-te',
     productName: '(TE) Movie Schedule Alarm',
     cinemaCode: 'TE',
-    version: '1.0.0',
+    version: '1.1.0',
     desktopAppId: 'com.moviealarm.schedule.te'
   },
   files: [
@@ -25,5 +25,5 @@ module.exports = {
     '!assets/private-booking-voice/gc1.mp3',
     '!assets/private-booking-voice/gc2.mp3'
   ],
-  nsis: { ...basePackage.build.nsis, artifactName: '(TE)Movie-Schedule-Alarm-V1.0-Setup.${ext}' }
+  nsis: { ...basePackage.build.nsis, artifactName: '(TE)Movie-Schedule-Alarm-V1.1-Setup.${ext}' }
 };

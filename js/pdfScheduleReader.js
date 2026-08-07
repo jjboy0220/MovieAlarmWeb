@@ -119,7 +119,7 @@ export function parsePdfFilenameDateRange(fileName) {
   return { startMonth, startDay, endMonth, endDay };
 }
 
-// 使用檔名週期與殘存的日、年份修復損壞月份；TC 可額外接受結束日隔天作為最後營運日凌晨延伸。
+// 使用檔名週期與殘存的日、年份修復損壞月份；館別可接受結束日隔天作為最後營運日凌晨延伸。
 export function repairPdfDateHeading(text, fileName, { includeNextDay = false } = {}) {
   const remainingDate = normalizeText(text).match(/(\d{1,2}),\s*(\d{4})(?:\s|$)/);
   const range = parsePdfFilenameDateRange(fileName);

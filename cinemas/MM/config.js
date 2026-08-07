@@ -1,8 +1,9 @@
-// MM 影城專屬 V2.0 設定；只列出實際數字廳並加入 ATMOS、CTRL 規格。
+// MM 影城專屬 V2.1 設定；只列出實際數字廳並加入 ATMOS、CTRL 規格。
 export const MM_CINEMA_CONFIG = Object.freeze({
   code: 'MM',
-  version: '2.0.0',
+  version: '2.1.0',
   appDisplayName: '(MM) Movie Schedule Alarm',
+  includeFinalOperationalDayOvernight: true,
   monitorTitle: 'iFG遠雄威秀影城場次監控',
   halls: ['C1', 'C2', 'C3', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'],
   formats: ['DIG', 'ATMOS', 'CTRL', 'LIVE', 'SPECIAL'],
