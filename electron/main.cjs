@@ -5,11 +5,12 @@ const { createSystemVolumeBridge } = require('./systemVolumeBridge.cjs');
 
 const packageMetadata = require('../package.json');
 const requestedCinemaCode = String(packageMetadata.cinemaCode || process.argv.find(argument => argument.startsWith('--cinema='))?.split('=')[1] || 'TC').toUpperCase();
-const CINEMA_CODE = ['TC', 'MM', 'TE'].includes(requestedCinemaCode) ? requestedCinemaCode : 'TC';
+const CINEMA_CODE = ['TC', 'MM', 'TE', 'TD'].includes(requestedCinemaCode) ? requestedCinemaCode : 'TC';
 const WINDOWS_APP_USER_MODEL_ID = packageMetadata.desktopAppId || {
   TC: 'com.moviealarm.schedule',
   MM: 'com.moviealarm.schedule.mm',
-  TE: 'com.moviealarm.schedule.te'
+  TE: 'com.moviealarm.schedule.te',
+  TD: 'com.moviealarm.schedule.td'
 }[CINEMA_CODE];
 const DESKTOP_PRODUCT_NAME = packageMetadata.productName || 'Movie Schedule Alarm';
 

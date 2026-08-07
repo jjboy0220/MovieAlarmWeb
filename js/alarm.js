@@ -4,6 +4,8 @@ const ALARM_AUDIO_SOURCE = 'assets/alarm.wav';
 const HALL_AUDIO_SOURCES = Object.freeze(CINEMA_CONFIG.hallAudioSources);
 const PRIVATE_BOOKING_AUDIO_SOURCES = Object.freeze(CINEMA_CONFIG.privateBookingAudioSources || {});
 const HALL_ANNOUNCEMENTS = Object.freeze(CINEMA_CONFIG.hallAnnouncements);
+const LIVE_AUDIO_SOURCE = CINEMA_CONFIG.liveAudioSource || '';
+const LIVE_ANNOUNCEMENT = CINEMA_CONFIG.liveAnnouncement || '直播場次提醒。';
 let sharedAlarmChannel = null;
 
 // 將瀏覽器拒絕播放的情況轉為可直接顯示的繁體中文提示。
@@ -47,6 +49,14 @@ function getHallAudioSource(hall) {
 
 function getPrivateBookingAudioSource(hall) {
   return PRIVATE_BOOKING_AUDIO_SOURCES[String(hall || '').trim().toUpperCase()] || '';
+}
+
+// LIVE 可與其他規格並存，統一從 formats 或相容的單一格式欄位判斷。
+function isLiveSession(session) {
+  const formats = Array.isArray(session?.formats)
+    ? session.formats
+    : [session?.formatDisplay || session?.format].filter(Boolean);
+  return formats.some(format => String(format).toUpperCase().split(/\s*\/\s*|\s+/).includes('LIVE'));
 }
 
 // 建立全站唯一的 Audio Alarm Channel，避免切換警報或重新匯入時重複建立音效物件。
@@ -137,14 +147,19 @@ export function createAlarmChannel() {
   function previewHallAnnouncement(hall, settings) {
     const isDefaultAlarmPreview = hall === 'DEFAULT_ALARM';
     const isPrivateBookingPreview = String(hall || '').startsWith('PRIVATE:');
+    const isLivePreview = hall === 'LIVE_REMINDER';
     const previewHall = isPrivateBookingPreview ? String(hall).slice('PRIVATE:'.length) : hall;
     const message = isDefaultAlarmPreview
       ? '預設警報聲'
-      : isPrivateBookingPreview ? getPrivateBookingAnnouncement(previewHall) : getHallAnnouncement(previewHall);
+      : isLivePreview
+        ? LIVE_ANNOUNCEMENT
+        : isPrivateBookingPreview ? getPrivateBookingAnnouncement(previewHall) : getHallAnnouncement(previewHall);
     if (runtime.active) return Promise.resolve({ success: false, message: '正式警報播放中，請先停止警報再測試語音' });
     const recordedSource = isDefaultAlarmPreview
       ? ALARM_AUDIO_SOURCE
-      : isPrivateBookingPreview ? getPrivateBookingAudioSource(previewHall) : getHallAudioSource(previewHall);
+      : isLivePreview
+        ? LIVE_AUDIO_SOURCE
+        : isPrivateBookingPreview ? getPrivateBookingAudioSource(previewHall) : getHallAudioSource(previewHall);
     if (recordedSource && audio) {
       speechGeneration += 1;
       speechSynthesis?.cancel();
@@ -241,16 +256,32 @@ export function createAlarmChannel() {
   async function startAlarm(settings, group = null) {
     runtime.active = true;
     if (isSilentMode(settings)) return { audioStarted: false, message: '' };
-    const hasPrivateBooking = (group?.sessions || []).some(session => session.manualMarker === 'PRIVATE');
-    if (isHallVoiceMode(settings) || hasPrivateBooking) {
+    const hasManagedSession = (group?.sessions || []).some(session => (
+      session.manualMarker === 'PRIVATE'
+      || session.manualMarker === 'LIVE'
+      || (session.manualMarker === 'SPECIAL' && session.specialTimingMode === 'FLEXIBLE')
+    ));
+    const hasLiveReminder = Boolean(LIVE_AUDIO_SOURCE) && (group?.sessions || []).some(isLiveSession);
+    if (isHallVoiceMode(settings) || hasManagedSession || hasLiveReminder) {
       if (!audio && (!speechSynthesis || typeof SpeechUtterance !== 'function')) {
         runtime.audioPlayError = '目前 Windows 環境不支援廳別語音播報';
         return { audioStarted: false, message: runtime.audioPlayError };
       }
-      const announcements = (group?.sessions || []).map(session => ({
-        message: session.manualMarker === 'PRIVATE' ? getPrivateBookingAnnouncement(session.hall) : getHallAnnouncement(session.hall),
-        source: session.manualMarker === 'PRIVATE' ? getPrivateBookingAudioSource(session.hall) : getHallAudioSource(session.hall)
-      }));
+      const announcements = (group?.sessions || []).map((session, sourceIndex) => {
+        const isPrivateBooking = session.manualMarker === 'PRIVATE';
+        const isLive = session.manualMarker === 'LIVE' || (!isPrivateBooking && isLiveSession(session));
+        const isSpecial = session.manualMarker === 'SPECIAL' && session.specialTimingMode === 'FLEXIBLE';
+        return {
+          message: isPrivateBooking
+            ? getPrivateBookingAnnouncement(session.hall)
+            : isLive ? LIVE_ANNOUNCEMENT : getHallAnnouncement(session.hall),
+          source: isPrivateBooking
+            ? getPrivateBookingAudioSource(session.hall)
+            : isLive ? LIVE_AUDIO_SOURCE : getHallAudioSource(session.hall),
+          priority: isLive ? 2 : (isPrivateBooking || isSpecial) ? 1 : 0,
+          sourceIndex
+        };
+      }).sort((left, right) => left.priority - right.priority || left.sourceIndex - right.sourceIndex);
       if (!announcements.length) announcements.push({ message: '場次開播', source: '' });
       const generation = ++speechGeneration;
       speechSynthesis?.cancel();

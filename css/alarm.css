@@ -68,6 +68,8 @@ body.alarm-active::before { position: fixed; inset: 0; z-index: 15; background: 
 .alarm-session-private-notice { width: fit-content; max-width: 100%; margin: 12px auto 0; padding: 10px 14px; border: 1px solid #fb923c; border-radius: 10px; background: rgba(234, 88, 12, .22); color: #fed7aa; font-size: 1.05rem; font-weight: 900; line-height: 1.4; text-align: center; }
 body.light .alarm-session-private-notice { background: #ffedd5; color: #9a3412; }
 body.light .alarm-private-booking-notice { background: #ffedd5; color: #9a3412; }
+.alarm-session-private-notice.type-live { border-color: #ec4899; background: rgba(190, 24, 93, .22); color: #fbcfe8; }
+.alarm-session-private-notice.type-special { border-color: #eab308; background: rgba(202, 138, 4, .22); color: #fef08a; }
 .alarm-auto-dismiss-note { margin: 14px 0 0; color: var(--alarm-muted); font-size: .82rem; font-weight: 700; text-align: center; }
 .alarm-auto-dismiss-note[hidden] { display: none; }
 .stop-alarm-button { width: min(100%, 290px); margin-top: 22px; padding: 14px 20px; border: 1px solid var(--alarm-border-strong); border-radius: 12px; background: var(--alarm-border); color: #ffffff; cursor: pointer; font: inherit; font-size: 1rem; font-weight: 900; letter-spacing: .04em; transition: background 160ms ease, transform 160ms ease; }

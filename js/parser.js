@@ -47,9 +47,9 @@ export function parseFilmTitle(value) {
   };
 }
 
-// 依影廳顯示規則標準化名稱：數字廳加 C，GC 數字廳移除前導零。
+// 依影廳顯示規則標準化名稱：移除 TD 已確認的樓層前綴、數字廳加 C，GC 數字廳移除前導零。
 export function parseHall(value) {
-  const screen = normalizeText(value).toUpperCase();
+  const screen = normalizeText(value).toUpperCase().replace(/^\((?:5F|B1F)\)\s*/, '');
   if (/^\d+$/.test(screen)) return `C${screen}`;
 
   const gcHallMatch = screen.match(/^GC0*(\d+)$/);

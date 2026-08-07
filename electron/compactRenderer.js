@@ -29,6 +29,12 @@ function createBadge(text, extraClass = '') {
   return badge;
 }
 
+function appendSessionTypeBadge(container, session) {
+  const labels = { PRIVATE: '包廳', LIVE: 'LIVE', SPECIAL: '特別場' };
+  const label = labels[session.manualMarker];
+  if (label) container.append(createBadge(label, `session-type type-${session.manualMarker.toLowerCase()}`));
+}
+
 // SPECIAL 是規格修飾詞；在小視窗與原始視窗一致合併成單一規格 Badge。
 function combineSpecialFormats(formats) {
   const normalized = [...new Set((Array.isArray(formats) ? formats : []).filter(Boolean))];
@@ -41,10 +47,12 @@ function combineSpecialFormats(formats) {
 }
 
 function createPrivateBookingNotice(session) {
-  if (session.manualMarker !== 'PRIVATE') return null;
+  const labels = { PRIVATE: '包廳', LIVE: 'LIVE', SPECIAL: '特別場' };
+  if (!labels[session.manualMarker] || (session.manualMarker === 'SPECIAL' && session.specialTimingMode !== 'FLEXIBLE')) return null;
   const notice = document.createElement('p');
-  notice.className = 'session-private-notice';
-  notice.textContent = `此場為包廳場次，請留意最晚開播時間為（${session.latestStartTime || '尚未設定'}）`;
+  notice.className = `session-private-notice type-${session.manualMarker.toLowerCase()}`;
+  const action = session.manualMarker === 'LIVE' ? '開演' : '開播';
+  notice.textContent = `${labels[session.manualMarker]}場次需人工確認${action}${session.latestStartTime ? `，最晚開播時間為（${session.latestStartTime}）` : ''}`;
   return notice;
 }
 
@@ -54,17 +62,19 @@ function renderPrivateBookingMonitor(sessions = [], operationalDateKey = '') {
   monitor.hidden = !sessions.length;
   if (!sessions.length) return;
   const heading = document.createElement('strong');
-  heading.textContent = `包廳待開播｜${operationalDateKey.replaceAll('-', '/')}`;
+  heading.textContent = `待確認開播場次｜${operationalDateKey.replaceAll('-', '/')}`;
   monitor.append(heading);
   sessions.forEach(session => {
     const item = document.createElement('div');
-    item.className = 'compact-private-monitor-item';
+    item.className = `compact-private-monitor-item type-${String(session.manualMarker || 'PRIVATE').toLowerCase()}`;
     const text = document.createElement('span');
-    text.textContent = `${session.hall || '—'}｜${session.title || '未命名場次'}｜原訂 ${session.start || '--:--'}｜最晚 ${session.latestStartTime || '尚未設定'}`;
+    const typeLabel = { PRIVATE: '包廳', LIVE: 'LIVE', SPECIAL: '特別場' }[session.manualMarker] || '包廳';
+    text.textContent = `${typeLabel}｜${session.hallDisplay || session.hall || '—'}｜${session.title || '未命名場次'}｜原訂 ${session.start || '--:--'}${session.latestStartTime ? `｜最晚 ${session.latestStartTime}` : ''}`;
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = '▶ 確認開播';
-    button.title = '場次實際開播後按此確認並移除待開播提醒';
+    const confirmationLabel = session.manualMarker === 'LIVE' ? '確認已開演' : '確認已開播';
+    button.textContent = `▶ ${confirmationLabel}`;
+    button.title = `場次實際${session.manualMarker === 'LIVE' ? '開演' : '開播'}後按此確認並移除待確認提醒`;
     button.addEventListener('click', async () => {
       button.disabled = true;
       button.textContent = '處理中…';
@@ -72,7 +82,7 @@ function renderPrivateBookingMonitor(sessions = [], operationalDateKey = '') {
         await compactApi.markPrivateBookingStarted(session.id);
       } catch {
         button.disabled = false;
-        button.textContent = '▶ 確認開播';
+        button.textContent = `▶ ${confirmationLabel}`;
       }
     });
     item.append(text, button);
@@ -116,13 +126,14 @@ function renderPresentation(presentation = {}) {
     presentation.sessions.forEach(session => {
       const card = document.createElement('article');
       card.className = 'session';
-      card.append(createBadge(session.hall || '—', 'hall'));
+      card.append(createBadge(session.hallDisplay || session.hall || '—', 'hall'));
       const title = document.createElement('strong');
       title.className = 'title';
       title.textContent = session.title || '未命名場次';
       card.append(title);
       const badges = document.createElement('div');
       badges.className = 'badges';
+      appendSessionTypeBadge(badges, session);
       if (session.language) badges.append(createBadge(session.language));
       combineSpecialFormats(session.formats).forEach(format => badges.append(createBadge(format, 'format')));
       card.append(badges);
@@ -152,13 +163,14 @@ function renderAlarm(payload = {}) {
   sessions.forEach(session => {
     const card = document.createElement('article');
     card.className = 'session';
-    card.append(createBadge(session.hall || '—', 'hall'));
+    card.append(createBadge(session.hallDisplay || session.hall || '—', 'hall'));
     const title = document.createElement('strong');
     title.className = 'title';
     title.textContent = session.title || '未命名場次';
     card.append(title);
     const badges = document.createElement('div');
     badges.className = 'badges';
+    appendSessionTypeBadge(badges, session);
     if (session.language) badges.append(createBadge(session.language));
     const formats = session.formats?.length ? session.formats : [session.format].filter(Boolean);
     combineSpecialFormats(formats).forEach(format => badges.append(createBadge(format, 'format')));

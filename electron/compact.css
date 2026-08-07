@@ -32,7 +32,14 @@ body { padding: 5px; overflow: hidden; }
 .compact-private-monitor-item button { padding: 6px 11px; border: 1px solid #60a5fa; border-radius: 8px; background: #1d4ed8; color: #eff6ff; cursor: pointer; font: inherit; font-size: .8rem; font-weight: 900; box-shadow: 0 3px 10px rgba(37, 99, 235, .24); }
 .compact-private-monitor-item button:hover { background: #2563eb; }
 .compact-private-monitor-item button:disabled { cursor: wait; opacity: .6; }
+.compact-private-monitor-item.type-live { color: #fbcfe8; }
+.compact-private-monitor-item.type-special { color: #fef08a; }
 .session-private-notice { width: fit-content; max-width: 100%; margin: 10px auto 0; padding: 8px 10px; border: 1px solid #fb923c; border-radius: 9px; background: rgba(234, 88, 12, .22); color: #fed7aa; font-size: .9rem; font-weight: 900; line-height: 1.35; text-align: center; }
+.session-private-notice.type-live { border-color: #ec4899; background: rgba(190,24,93,.22); color: #fbcfe8; }
+.session-private-notice.type-special { border-color: #eab308; background: rgba(202,138,4,.22); color: #fef08a; }
+.badge.session-type.type-private { border-color: #fb923c; background: rgba(249,115,22,.18); color: #fdba74; }
+.badge.session-type.type-live { border-color: #ec4899; background: rgba(190,24,93,.2); color: #f9a8d4; }
+.badge.session-type.type-special { border-color: #eab308; background: rgba(202,138,4,.2); color: #fde047; }
 .compact-sessions.many-sessions {
   display: block;
   margin: 0 14px;
@@ -43,7 +50,7 @@ body { padding: 5px; overflow: hidden; }
 }
 .compact-sessions.many-sessions .session {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
   padding: 10px 2px;
@@ -62,7 +69,7 @@ body { padding: 5px; overflow: hidden; }
 }
 .compact-sessions.many-sessions .badges { justify-content: flex-end; gap: 4px; }
 .compact-sessions.many-sessions .badge { padding: 5px 8px; font-size: clamp(.76rem, 2.7vw, .9rem); }
-.compact-sessions.many-sessions .badge.hall { justify-self: center; }
+.compact-sessions.many-sessions .badge.hall { box-sizing: border-box; width: 88px; padding-inline: 5px; justify-self: center; white-space: nowrap; font-size: clamp(.68rem, 2.35vw, .82rem); text-align: center; }
 .compact-sessions.many-sessions .session-private-notice { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; padding: 7px 9px; font-size: .82rem; text-align: center; }
 .compact-stop { display: block; width: calc(100% - 28px); margin: 0 14px 14px; padding: 10px; border: 0; border-radius: 12px; background: #ff6b18; color: #fff; cursor: pointer; font: inherit; font-weight: 900; }
 .compact-auto-dismiss-note { margin: 0 14px 10px; color: #ffd3b6; font-size: .76rem; font-weight: 800; text-align: center; }

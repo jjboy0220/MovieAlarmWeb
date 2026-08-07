@@ -1,14 +1,19 @@
 const requestedCinemaCode = new URLSearchParams(globalThis.location?.search || '').get('cinema')?.toUpperCase() || 'TC';
 const isMmCinema = requestedCinemaCode === 'MM';
 const isTeCinema = requestedCinemaCode === 'TE';
+const isTdCinema = requestedCinemaCode === 'TD';
 const selectedCinemaModule = isMmCinema
   ? await import('../cinemas/MM/config.js')
-  : isTeCinema ? await import('../cinemas/TE/config.js') : await import('../cinemas/TC/config.js');
+  : isTeCinema
+    ? await import('../cinemas/TE/config.js')
+    : isTdCinema ? await import('../cinemas/TD/config.js') : await import('../cinemas/TC/config.js');
 
 // 只載入 Electron 傳入或瀏覽器查詢參數指定的館別設定，未知代號安全回到 TC。
 export const CINEMA_CONFIG = isMmCinema
   ? selectedCinemaModule.MM_CINEMA_CONFIG
-  : isTeCinema ? selectedCinemaModule.TE_CINEMA_CONFIG : selectedCinemaModule.TC_CINEMA_CONFIG;
+  : isTeCinema
+    ? selectedCinemaModule.TE_CINEMA_CONFIG
+    : isTdCinema ? selectedCinemaModule.TD_CINEMA_CONFIG : selectedCinemaModule.TC_CINEMA_CONFIG;
 
 // 集中保留應用程式名稱、館別版本、廳別與可辨識的放映規格。
 export const APP_NAME = 'Movie Schedule Alarm';
@@ -19,6 +24,12 @@ export const VERSION = CINEMA_CONFIG.version;
 export const HALLS = CINEMA_CONFIG.halls;
 export const FORMATS = CINEMA_CONFIG.formats;
 export const LANGUAGE_MAP = { C: 'CHI', E: 'ENG', J: 'JAN' };
+
+// 顯示影廳時套用館別專屬樓層標示，資料與篩選仍保留標準化廳號作為唯一鍵值。
+export function formatHallDisplay(hall) {
+  const normalizedHall = String(hall || '').trim().toUpperCase();
+  return CINEMA_CONFIG.hallDisplayLabels?.[normalizedHall] || normalizedHall;
+}
 
 // 可自行調整的排除片名關鍵字；符合任一關鍵字的場次不會進入應用程式資料流。
 export const EXCLUDED_MOVIE_KEYWORDS = ['TEST FILM', 'TEST', 'TRAILER', 'CHECK'];

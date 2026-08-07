@@ -1,12 +1,22 @@
 import { renderFormatBadges, renderHallBadge, renderLanguageBadge } from './badgeRenderer.js';
-import { CINEMA_CODE, FORMATS, HALLS, MONITOR_TITLE, VERSION } from './config.js';
+import { CINEMA_CODE, CINEMA_CONFIG, FORMATS, HALLS, MONITOR_TITLE, VERSION, formatHallDisplay } from './config.js';
 import { escapeHtml, formatCompactChineseDate } from './utils.js';
 
 let renderedGroupKey = '';
 
+const SESSION_TYPE_LABELS = Object.freeze({ PRIVATE: '包廳', LIVE: 'LIVE', SPECIAL: '特別場' });
+
+function renderSessionTypeBadge(session) {
+  const label = SESSION_TYPE_LABELS[session.manualMarker];
+  return label ? `<span class="session-type-badge type-${session.manualMarker.toLowerCase()}">${escapeHtml(label)}</span>` : '';
+}
+
 function renderPrivateBookingNotice(session, className) {
-  if (session.manualMarker !== 'PRIVATE') return '';
-  return `<p class="${className}">此場為包廳場次，請留意最晚開播時間為（${escapeHtml(session.latestStartTime || '尚未設定')}）</p>`;
+  const typeLabel = SESSION_TYPE_LABELS[session.manualMarker];
+  if (!typeLabel || (session.manualMarker === 'SPECIAL' && session.specialTimingMode !== 'FLEXIBLE')) return '';
+  const latest = session.latestStartTime ? `，最晚開播時間為（${escapeHtml(session.latestStartTime)}）` : '';
+  const action = session.manualMarker === 'LIVE' ? '開演' : '開播';
+  return `<p class="${className} type-${session.manualMarker.toLowerCase()}">${escapeHtml(typeLabel)}場次需人工確認${action}${latest}</p>`;
 }
 
 // 統一查詢單一 DOM 節點，避免各 UI 函式重複撰寫選擇器。
@@ -14,7 +24,7 @@ const $ = selector => document.querySelector(selector);
 
 // 以群組開播時間與場次識別碼建立穩定鍵值，避免每秒重建相同的場次清單。
 function getSessionGroupKey(group) {
-  return `${group.startDateTime}|${group.sessions.map(session => `${session.id || session.hall}-${session.displayTitle || session.title}-${session.manualMarker || 'NORMAL'}-${session.latestStartTime || ''}`).join('|')}`;
+  return `${group.startDateTime}|${group.sessions.map(session => `${session.id || session.hall}-${session.displayTitle || session.title}-${session.manualMarker || 'NORMAL'}-${session.specialTimingMode || 'ON_TIME'}-${session.latestStartTime || ''}`).join('|')}`;
 }
 
 // 將完整下一場卡片清單固定移到共用開演時間上方，且只沿用既有 DOM 節點。
@@ -31,7 +41,7 @@ function ensureNextSessionListPlacement() {
 function renderNextSession(session) {
   const languageBadge = renderLanguageBadge(session.language);
   const formatBadges = renderFormatBadges(session);
-  const metadataBadges = [languageBadge, formatBadges].filter(Boolean).join('');
+  const metadataBadges = [renderSessionTypeBadge(session), languageBadge, formatBadges].filter(Boolean).join('');
 
   return `<article class="next-session-item"><div class="next-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="next-session-title" title="${escapeHtml(session.originalTitle || session.title)}">${escapeHtml(session.displayTitle || session.title)}</strong><div class="next-session-badges">${metadataBadges || '<span class="next-session-unlabeled">未標示語言或格式</span>'}</div>${renderPrivateBookingNotice(session, 'next-session-private-notice')}</article>`;
 }
@@ -40,7 +50,7 @@ function renderNextSession(session) {
 function renderAlarmSession(session) {
   const languageBadge = renderLanguageBadge(session.language);
   const formatBadges = renderFormatBadges(session);
-  const metadataBadges = [languageBadge, formatBadges].filter(Boolean).join('');
+  const metadataBadges = [renderSessionTypeBadge(session), languageBadge, formatBadges].filter(Boolean).join('');
 
   return `<article class="alarm-session-item"><div class="alarm-session-hall">${renderHallBadge(session.hall) || '—'}</div><strong class="alarm-session-title" title="${escapeHtml(session.originalTitle || session.title)}">${escapeHtml(session.displayTitle || session.title)}</strong><div class="alarm-session-badges">${metadataBadges || '<span class="alarm-session-unlabeled">未標示語言或格式</span>'}</div>${renderPrivateBookingNotice(session, 'alarm-session-private-notice')}</article>`;
 }
@@ -363,17 +373,20 @@ export function updatePrivateBookingMonitor(sessions = [], operationalDateKey = 
   if (!sessions.length) return;
 
   const heading = document.createElement('strong');
-  heading.textContent = `包廳待開播｜${operationalDateKey.replaceAll('-', '/')}`;
+  heading.textContent = `待確認開播場次｜${operationalDateKey.replaceAll('-', '/')}`;
   monitor.append(heading);
   sessions.forEach(session => {
     const item = document.createElement('div');
-    item.className = 'private-booking-monitor-item';
+    item.className = `private-booking-monitor-item type-${String(session.manualMarker || 'PRIVATE').toLowerCase()}`;
     const text = document.createElement('span');
-    text.textContent = `${session.hall || '未標示影廳'}｜${session.displayTitle || session.title || '未命名場次'}｜原訂 ${session.start || '--:--'}｜最晚 ${session.latestStartTime || '尚未設定'}`;
+    const typeLabel = SESSION_TYPE_LABELS[session.manualMarker] || '包廳';
+    const latest = session.latestStartTime ? `｜最晚 ${session.latestStartTime}` : '';
+    text.textContent = `${typeLabel}｜${formatHallDisplay(session.hall) || '未標示影廳'}｜${session.displayTitle || session.title || '未命名場次'}｜原訂 ${session.start || '--:--'}${latest}`;
     const startedButton = document.createElement('button');
     startedButton.type = 'button';
-    startedButton.textContent = '▶ 確認開播';
-    startedButton.title = '場次實際開播後按此確認並移除待開播提醒';
+    const confirmationLabel = session.manualMarker === 'LIVE' ? '確認已開演' : '確認已開播';
+    startedButton.textContent = `▶ ${confirmationLabel}`;
+    startedButton.title = `場次實際${session.manualMarker === 'LIVE' ? '開演' : '開播'}後按此確認並移除待確認提醒`;
     startedButton.addEventListener('click', () => {
       startedButton.disabled = true;
       startedButton.textContent = '處理中…';
@@ -492,13 +505,16 @@ export function updateSettingsNotice(message) {
 
 // 依目前館別設定建立規格篩選與語音測試選項，避免 MM 顯示 TC 的 GC 廳資訊。
 export function configureCinemaUi() {
+  const sessionTypeHeading = document.querySelector('thead th:nth-child(2)');
+  if (sessionTypeHeading) sessionTypeHeading.textContent = '場次類型';
   const formatFilter = $('#formatFilter');
   formatFilter.replaceChildren(new Option('所有規格', 'ALL'), ...FORMATS.map(format => new Option(format, format)));
   const hallVoiceSelect = $('#hallVoiceTestSelect');
   hallVoiceSelect.replaceChildren(
     new Option('預設警報聲', 'DEFAULT_ALARM'),
-    ...HALLS.map(hall => new Option(`${hall} 開播`, hall)),
-    ...HALLS.map(hall => new Option(`${hall} 包廳提醒`, `PRIVATE:${hall}`))
+    ...HALLS.map(hall => new Option(`${formatHallDisplay(hall)} 開播`, hall)),
+    ...HALLS.map(hall => new Option(`${formatHallDisplay(hall)} 包廳提醒`, `PRIVATE:${hall}`)),
+    ...(CINEMA_CONFIG.liveAudioSource ? [new Option('LIVE 直播場次提醒', 'LIVE_REMINDER')] : [])
   );
   document.documentElement.dataset.cinema = CINEMA_CODE;
   const brandVersion = document.querySelector('.brand small');

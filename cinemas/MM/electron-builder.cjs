@@ -14,6 +14,6 @@ module.exports = {
     version: '2.1.0',
     desktopAppId: 'com.moviealarm.schedule.mm'
   },
-  files: [...basePackage.build.files, '!cinemas/TC/**/*', '!assets/hall-voice/gc1.mp3', '!assets/hall-voice/gc2.mp3'],
+  files: [...basePackage.build.files, '!cinemas/TC/**/*', '!cinemas/TD/**/*', '!assets/hall-voice/gc1.mp3', '!assets/hall-voice/gc2.mp3'],
   nsis: { ...basePackage.build.nsis, artifactName: '(MM)Movie-Schedule-Alarm-V2.1-Setup.${ext}' }
 };

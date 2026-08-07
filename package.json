@@ -13,11 +13,13 @@
     "desktop": "electron .",
     "desktop:mm": "electron . --cinema=MM",
     "desktop:te": "electron . --cinema=TE",
+    "desktop:td": "electron . --cinema=TD",
     "build:portable": "electron-builder --win portable --x64",
     "build:installer": "electron-builder --config cinemas/TC/electron-builder.cjs --win nsis --x64",
     "build:tc": "electron-builder --config cinemas/TC/electron-builder.cjs --win nsis --x64",
     "build:mm": "electron-builder --config cinemas/MM/electron-builder.cjs --win nsis --x64",
-    "build:te": "electron-builder --config cinemas/TE/electron-builder.cjs --win nsis --x64"
+    "build:te": "electron-builder --config cinemas/TE/electron-builder.cjs --win nsis --x64",
+    "build:td": "electron-builder --config cinemas/TD/electron-builder.cjs --win nsis --x64"
   },
   "devDependencies": {
     "electron": "43.1.1",

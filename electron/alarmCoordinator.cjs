@@ -29,9 +29,13 @@ function validateSchedulePayload(candidate) {
     timeLabel: normalizeText(candidate.timeLabel, 20),
     sessions: candidate.sessions.map(session => ({
       hall: normalizeText(session?.hall, 80),
+      hallDisplay: normalizeText(session?.hallDisplay, 120),
       title: normalizeText(session?.title, 300),
       language: normalizeText(session?.language, 40),
-      format: normalizeText(session?.format, 80)
+      format: normalizeText(session?.format, 80),
+      manualMarker: ['PRIVATE', 'LIVE', 'SPECIAL'].includes(session?.manualMarker) ? session.manualMarker : 'NORMAL',
+      specialTimingMode: session?.specialTimingMode === 'FLEXIBLE' ? 'FLEXIBLE' : 'ON_TIME',
+      latestStartTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(session?.latestStartTime || '') ? session.latestStartTime : ''
     }))
   };
 }

@@ -238,7 +238,8 @@ export function parsePdfScheduleRows(pages, {
       const start = normalizePdfTime(columns.start);
       const finish = normalizePdfTime(columns.finish);
       const sourceStatus = columns.status.toUpperCase();
-      const validScreen = /^(?:\d+|GC0*\d+)$/i.test(columns.screen);
+      const parsedHall = parseHall(columns.screen);
+      const validScreen = CINEMA_CONFIG.halls.includes(parsedHall);
       const looksLikeSession = validScreen || Boolean(start || finish || VALID_SOURCE_STATUSES.has(sourceStatus));
 
       if (!validScreen || !start || !finish || !VALID_SOURCE_STATUSES.has(sourceStatus) || !columns.filmTitle || !currentDate) {
@@ -261,13 +262,13 @@ export function parsePdfScheduleRows(pages, {
       const finishDate = finish <= start ? addDaysToDate(currentDate, 1) : currentDate;
       const operationalDate = getOperationalDateForStart(currentDate, start);
       movies.push({
-        id: `pdf-${currentDate}-${start}-${parseHall(columns.screen)}-${page.pageNumber}-${row.rowNumber}`,
+        id: `pdf-${currentDate}-${start}-${parsedHall}-${page.pageNumber}-${row.rowNumber}`,
         sourceType: 'pdf',
         sourcePage: page.pageNumber,
         sourceRow: row.rowNumber,
         sourceStatus: columns.status,
         screen: columns.screen,
-        hall: parseHall(columns.screen),
+        hall: parsedHall,
         date: currentDate,
         weekday: getTraditionalChineseWeekday(currentDate),
         operationalDate,

@@ -1,4 +1,4 @@
-import { APP_DISPLAY_NAME, VERSION } from './config.js';
+import { APP_DISPLAY_NAME, VERSION, formatHallDisplay } from './config.js';
 import { hasStoredStartupPreference, loadSettings, normalizeSettings, saveSettings } from './settings.js';
 import { readPdfSchedule } from './pdfScheduleReader.js';
 import { createSessionGroupKey, getLatestUntriggeredSessionGroup, getNextMoviePresentationState, sortSessionsByStart, updateSessionStatuses } from './scheduler.js';
@@ -25,7 +25,8 @@ const desktopWindow = globalThis.desktopWindow || null;
 const desktopSystemVolume = globalThis.desktopSystemVolume || null;
 const DAILY_REMINDER_STORAGE_KEY = 'movieScheduleAlarm.dailyReminder.v1';
 const ALARM_AUTO_DISMISS_MS = 60_000;
-const SESSION_MARKERS = new Set(['NORMAL', 'PRIVATE']);
+const SESSION_MARKERS = new Set(['NORMAL', 'PRIVATE', 'LIVE', 'SPECIAL']);
+const SPECIAL_TIMING_MODES = new Set(['ON_TIME', 'FLEXIBLE']);
 const restoredDcpTitleData = loadDcpTitleData();
 let desktopAlarmScheduleSignature = '';
 let unsubscribeDesktopAlarm = null;
@@ -157,6 +158,47 @@ const dailyReminderTimer = createDailyReminderTimer(() => {
 // 將本機恢復或 UI 傳入的人工場次標記限制在既有白名單，避免損壞資料進入警報 IPC。
 function normalizeSessionMarker(value) {
   return SESSION_MARKERS.has(value) ? value : 'NORMAL';
+}
+
+function normalizeSpecialTimingMode(value) {
+  return SPECIAL_TIMING_MODES.has(value) ? value : 'ON_TIME';
+}
+
+function requiresOpeningConfirmation(marker, specialTimingMode = 'ON_TIME') {
+  return marker === 'PRIVATE' || marker === 'LIVE'
+    || (marker === 'SPECIAL' && normalizeSpecialTimingMode(specialTimingMode) === 'FLEXIBLE');
+}
+
+function inferSessionMarker(session) {
+  if (SESSION_MARKERS.has(session?.manualMarker)) return session.manualMarker;
+  const formats = Array.isArray(session?.formats)
+    ? session.formats
+    : [session?.formatDisplay || session?.format].filter(Boolean);
+  const tokens = formats.flatMap(format => String(format).toUpperCase().split(/\s*\/\s*|\s+/));
+  if (tokens.includes('LIVE')) return 'LIVE';
+  if (tokens.includes('SPECIAL')) return 'SPECIAL';
+  return 'NORMAL';
+}
+
+function normalizeOperationalSession(session) {
+  const manualMarker = inferSessionMarker(session);
+  const specialTimingMode = manualMarker === 'SPECIAL'
+    ? normalizeSpecialTimingMode(session.specialTimingMode)
+    : 'ON_TIME';
+  const requiresConfirmation = requiresOpeningConfirmation(manualMarker, specialTimingMode);
+  const normalized = {
+    ...session,
+    manualMarker,
+    specialTimingMode,
+    latestStartTime: requiresConfirmation && manualMarker !== 'LIVE' ? normalizeLatestStartTime(session.latestStartTime) : '',
+    openingConfirmed: requiresConfirmation
+      && (session.openingConfirmed === true || session.privateBookingStarted === true),
+    openingAlertDismissed: requiresConfirmation
+      && (session.openingAlertDismissed === true || session.privateBookingAlertDismissed === true)
+  };
+  delete normalized.privateBookingStarted;
+  delete normalized.privateBookingAlertDismissed;
+  return normalized;
 }
 
 function normalizeLatestStartTime(value) {
@@ -434,10 +476,12 @@ function createDesktopAlarmPayload(group) {
     timeLabel: firstSession.start || '',
     sessions: group.sessions.map(session => ({
       hall: session.hall || '',
+      hallDisplay: formatHallDisplay(session.hall),
       title: session.displayTitle || session.title || '',
       language: session.language || '',
       format: session.formatDisplay || session.format || '',
       manualMarker: normalizeSessionMarker(session.manualMarker),
+      specialTimingMode: normalizeSpecialTimingMode(session.specialTimingMode),
       latestStartTime: normalizeLatestStartTime(session.latestStartTime)
     }))
   };
@@ -448,7 +492,7 @@ async function syncDesktopAlarmSchedule() {
   if (!desktopAlarm) return;
   const payload = createDesktopAlarmPayload(state.nextSessionGroup);
   const signature = payload
-    ? `${payload.scheduleGeneration}|${payload.groupKey}|${payload.startTimestamp}|${payload.leadMinutes}|${payload.alarmEnabled}|${payload.sessions.map(session => `${session.manualMarker}:${session.latestStartTime}`).join(',')}`
+    ? `${payload.scheduleGeneration}|${payload.groupKey}|${payload.startTimestamp}|${payload.leadMinutes}|${payload.alarmEnabled}|${payload.sessions.map(session => `${session.manualMarker}:${session.specialTimingMode}:${session.latestStartTime}`).join(',')}`
     : 'cancelled';
   if (signature === desktopAlarmScheduleSignature) return;
   desktopAlarmScheduleSignature = signature;
@@ -602,14 +646,14 @@ function updateNextMovieClock(now = new Date()) {
   const group = presentation.group;
   const currentOperationalDateKey = getOperationalDateKey(state.sessions, now);
   const pendingPrivateBookings = state.sessions.filter(session => (
-    session.manualMarker === 'PRIVATE'
-    && session.privateBookingStarted !== true
+    requiresOpeningConfirmation(normalizeSessionMarker(session.manualMarker), session.specialTimingMode)
+    && session.openingConfirmed !== true
     && (session.operationalDate || session.date) === currentOperationalDateKey
   ));
-  const compactPendingPrivateBookings = pendingPrivateBookings.filter(session => session.privateBookingAlertDismissed === true);
-  updatePrivateBookingMonitor(pendingPrivateBookings, currentOperationalDateKey, sessionId => {
+  const compactPendingPrivateBookings = pendingPrivateBookings.filter(session => session.openingAlertDismissed === true);
+  updatePrivateBookingMonitor(compactPendingPrivateBookings, currentOperationalDateKey, sessionId => {
     const session = state.sessions.find(item => item.id === sessionId);
-    if (session) updateSessionMarker(session.id, 'PRIVATE', session.latestStartTime, true);
+    if (session) updateSessionMarker(session.id, session.manualMarker, session.latestStartTime, true, session.specialTimingMode);
   });
   const compactPresentation = {
     type: presentation.type,
@@ -626,16 +670,21 @@ function updateNextMovieClock(now = new Date()) {
     privateBookings: compactPendingPrivateBookings.map(session => ({
       id: session.id || '',
       hall: session.hall || '',
+      hallDisplay: formatHallDisplay(session.hall),
       title: session.displayTitle || session.title || '',
       start: session.start || '',
+      manualMarker: normalizeSessionMarker(session.manualMarker),
+      specialTimingMode: normalizeSpecialTimingMode(session.specialTimingMode),
       latestStartTime: normalizeLatestStartTime(session.latestStartTime)
     })),
     sessions: (group?.sessions || []).map(session => ({
       hall: session.hall || '',
+      hallDisplay: formatHallDisplay(session.hall),
       title: session.displayTitle || session.title || '',
       language: session.language || '',
       formats: session.formats?.length ? session.formats : [session.formatDisplay || session.format].filter(Boolean),
       manualMarker: normalizeSessionMarker(session.manualMarker),
+      specialTimingMode: normalizeSpecialTimingMode(session.specialTimingMode),
       latestStartTime: normalizeLatestStartTime(session.latestStartTime)
     }))
   };
@@ -721,12 +770,12 @@ function stopActiveAlarm() {
   const stoppedGroupKey = state.activeAlarmGroup?.groupKey || '';
   const stoppedPrivateSessionIds = new Set(
     (state.activeAlarmGroup?.sessions || [])
-      .filter(session => session.manualMarker === 'PRIVATE')
+      .filter(session => requiresOpeningConfirmation(normalizeSessionMarker(session.manualMarker), session.specialTimingMode))
       .map(session => session.id)
   );
   if (stoppedPrivateSessionIds.size) {
     state.sessions.forEach(session => {
-      if (stoppedPrivateSessionIds.has(session.id)) session.privateBookingAlertDismissed = true;
+      if (stoppedPrivateSessionIds.has(session.id)) session.openingAlertDismissed = true;
     });
     saveScheduleSnapshot({
       sessions: state.sessions,
@@ -888,19 +937,26 @@ function resetAlarmStateForImport() {
 }
 
 // 將人工選擇的場次標記寫回唯一 sessions 並保存快照，不修改時間、排序、id 或警報 groupKey。
-function updateSessionMarker(sessionId, manualMarker, latestStartTime = '', privateBookingStarted = false) {
+function updateSessionMarker(sessionId, manualMarker, latestStartTime = '', openingConfirmed = false, specialTimingMode = 'ON_TIME') {
   if (!sessionId || !SESSION_MARKERS.has(manualMarker)) return;
   const target = state.sessions.find(session => session.id === sessionId);
-  const normalizedLatestStartTime = normalizeLatestStartTime(latestStartTime);
-  const normalizedStarted = manualMarker === 'PRIVATE' && privateBookingStarted === true;
-  if (!target || (normalizeSessionMarker(target.manualMarker) === manualMarker && normalizeLatestStartTime(target.latestStartTime) === normalizedLatestStartTime && target.privateBookingStarted === normalizedStarted)) return;
-  const wasPrivate = normalizeSessionMarker(target.manualMarker) === 'PRIVATE';
+  const normalizedSpecialTimingMode = manualMarker === 'SPECIAL' ? normalizeSpecialTimingMode(specialTimingMode) : 'ON_TIME';
+  const requiresConfirmation = requiresOpeningConfirmation(manualMarker, normalizedSpecialTimingMode);
+  const normalizedLatestStartTime = requiresConfirmation && manualMarker !== 'LIVE'
+    ? normalizeLatestStartTime(latestStartTime)
+    : '';
+  const normalizedStarted = requiresConfirmation && openingConfirmed === true;
+  if (!target || (normalizeSessionMarker(target.manualMarker) === manualMarker && normalizeSpecialTimingMode(target.specialTimingMode) === normalizedSpecialTimingMode && normalizeLatestStartTime(target.latestStartTime) === normalizedLatestStartTime && target.openingConfirmed === normalizedStarted)) return;
+  const previousMarker = normalizeSessionMarker(target.manualMarker);
   target.manualMarker = manualMarker;
+  target.specialTimingMode = normalizedSpecialTimingMode;
   target.latestStartTime = normalizedLatestStartTime;
-  target.privateBookingStarted = normalizedStarted;
-  target.privateBookingAlertDismissed = manualMarker === 'PRIVATE' && wasPrivate
-    ? target.privateBookingAlertDismissed === true
+  target.openingConfirmed = normalizedStarted;
+  target.openingAlertDismissed = requiresConfirmation && previousMarker === manualMarker
+    ? target.openingAlertDismissed === true
     : false;
+  delete target.privateBookingStarted;
+  delete target.privateBookingAlertDismissed;
   saveScheduleSnapshot({
     sessions: state.sessions,
     importedFileName: state.importedFileName,
@@ -917,7 +973,7 @@ function applyImportedSessions({ sessions, sourceType, sourceFileName, metadata 
   resetAlarmStateForImport();
   const importedAt = new Date();
   state.sessions = sortSessionsByStart(updateSessionStatuses(
-    applyDcpTitlesToSessions(sessions, state.dcpTitleMap),
+    applyDcpTitlesToSessions(sessions, state.dcpTitleMap).map(normalizeOperationalSession),
     importedAt
   ));
   state.importedFileName = sourceFileName;
@@ -980,7 +1036,7 @@ function restoreStoredSchedule(now = new Date()) {
   const restored = loadScheduleSnapshot();
   if (!restored) return;
   state.sessions = sortSessionsByStart(updateSessionStatuses(
-    applyDcpTitlesToSessions(restored.sessions, state.dcpTitleMap),
+    applyDcpTitlesToSessions(restored.sessions, state.dcpTitleMap).map(normalizeOperationalSession),
     now
   ));
   state.importedFileName = restored.importedFileName;
@@ -1094,8 +1150,8 @@ function init() {
   });
   bindSessionMarkerControls(updateSessionMarker);
   desktopWindow?.onPrivateBookingStarted?.(sessionId => {
-    const session = state.sessions.find(item => item.id === sessionId && item.manualMarker === 'PRIVATE');
-    if (session) updateSessionMarker(session.id, 'PRIVATE', session.latestStartTime, true);
+    const session = state.sessions.find(item => item.id === sessionId && requiresOpeningConfirmation(normalizeSessionMarker(item.manualMarker), item.specialTimingMode));
+    if (session) updateSessionMarker(session.id, session.manualMarker, session.latestStartTime, true, session.specialTimingMode);
   });
   document.querySelector('#pdfFileInput').addEventListener('change', async event => {
     const file = event.target.files[0];

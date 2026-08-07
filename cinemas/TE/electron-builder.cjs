@@ -18,6 +18,7 @@ module.exports = {
     ...basePackage.build.files,
     '!cinemas/TC/**/*',
     '!cinemas/MM/**/*',
+    '!cinemas/TD/**/*',
     '!assets/hall-voice/c9.mp3',
     '!assets/hall-voice/gc1.mp3',
     '!assets/hall-voice/gc2.mp3',

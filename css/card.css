@@ -25,6 +25,8 @@
 .next-session-empty { grid-column: 1 / -1; margin: 0; padding: 1.5rem; border: 1px dashed var(--next-card-border); border-radius: 14px; color: var(--next-card-muted); font-size: 1rem; font-weight: 700; }
 .next-session-private-notice { width: fit-content; max-width: 100%; margin: 1rem auto 0; padding: 10px 16px; border: 1px solid #fb923c; border-radius: 10px; background: rgba(234, 88, 12, .2); color: #fed7aa; font-size: clamp(1rem, 1.8vw, 1.2rem); font-weight: 900; line-height: 1.4; }
 body.light .next-session-private-notice { background: #ffedd5; color: #9a3412; }
+.next-session-private-notice.type-live { border-color: #ec4899; background: rgba(190, 24, 93, .2); color: #fbcfe8; }
+.next-session-private-notice.type-special { border-color: #eab308; background: rgba(202, 138, 4, .2); color: #fef08a; }
 
 /* 淺色模式維持白藍階層、醒目倒數與高對比的同時場次資訊卡。 */
 body.light .next-card { position: relative; isolation: isolate; overflow: hidden; padding: clamp(32px, 5vw, 64px); border: 1px solid var(--next-card-border); border-radius: 28px; background: var(--next-card-bg); box-shadow: var(--next-card-highlight), var(--next-card-shadow); transition: transform 180ms ease, box-shadow 180ms ease; }

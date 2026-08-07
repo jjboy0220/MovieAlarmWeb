@@ -1,4 +1,4 @@
-import { FORMATS } from './config.js';
+import { FORMATS, formatHallDisplay } from './config.js';
 import { formatCompactChineseDate, getSessionFormats, getTraditionalChineseWeekday, normalizeText } from './utils.js';
 
 const FILTER_DEFINITIONS = [
@@ -64,7 +64,7 @@ function populateSelect(definition, values) {
   const select = document.querySelector(`#${definition.elementId}`);
   const selectedValue = normalizeFilterValue(select.value);
   const options = [new Option(definition.allLabel, 'ALL')];
-  values.forEach(value => options.push(new Option(value, value)));
+  values.forEach(value => options.push(new Option(definition.field === 'hall' ? formatHallDisplay(value) : value, value)));
   select.replaceChildren(...options);
   select.value = values.includes(selectedValue) ? selectedValue : 'ALL';
   return select.value;
