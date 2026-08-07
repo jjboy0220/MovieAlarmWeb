@@ -1,4 +1,4 @@
-import { EXCLUDED_MOVIE_KEYWORDS } from './config.js';
+import { CINEMA_CONFIG, EXCLUDED_MOVIE_KEYWORDS } from './config.js';
 import { parseFilmTitle, parseHall } from './parser.js';
 import { addDaysToDate, createDateTime, formatDateKey, getTraditionalChineseWeekday, normalizeText } from './utils.js';
 import { getOperationalDateForStart } from './scheduleCoverage.js';
@@ -119,8 +119,8 @@ export function parsePdfFilenameDateRange(fileName) {
   return { startMonth, startDay, endMonth, endDay };
 }
 
-// 使用檔名週期與殘存的日、年份修復損壞月份；兩者無法唯一對應時拒絕猜測。
-export function repairPdfDateHeading(text, fileName) {
+// 使用檔名週期與殘存的日、年份修復損壞月份；TC 可額外接受結束日隔天作為最後營運日凌晨延伸。
+export function repairPdfDateHeading(text, fileName, { includeNextDay = false } = {}) {
   const remainingDate = normalizeText(text).match(/(\d{1,2}),\s*(\d{4})(?:\s|$)/);
   const range = parsePdfFilenameDateRange(fileName);
   if (!remainingDate || !range) return '';
@@ -132,7 +132,7 @@ export function repairPdfDateHeading(text, fileName) {
     const startDate = new Date(Date.UTC(possibleStartYear, range.startMonth - 1, range.startDay));
     const endYear = range.endMonth < range.startMonth ? possibleStartYear + 1 : possibleStartYear;
     const endDate = new Date(Date.UTC(endYear, range.endMonth - 1, range.endDay));
-    const maximumDays = Math.round((endDate.getTime() - startDate.getTime()) / 86400000);
+    const maximumDays = Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + (includeNextDay ? 1 : 0);
     if (maximumDays < 0 || maximumDays > 31) continue;
     for (let dayOffset = 0; dayOffset <= maximumDays; dayOffset += 1) {
       const candidate = new Date(startDate.getTime() + dayOffset * 86400000);
@@ -191,7 +191,10 @@ function isPossiblyTruncatedTitle(title) {
 }
 
 // 逐頁解析座標列，沿用上一頁日期與欄設定，建立與 Excel Reader 相容的 sessions。
-export function parsePdfScheduleRows(pages, { sourceFileName = '' } = {}) {
+export function parsePdfScheduleRows(pages, {
+  sourceFileName = '',
+  includeFinalOperationalDayOvernight = CINEMA_CONFIG.includeFinalOperationalDayOvernight === true
+} = {}) {
   const movies = [];
   const parseErrors = [];
   let currentDate = '';
@@ -214,7 +217,9 @@ export function parsePdfScheduleRows(pages, { sourceFileName = '' } = {}) {
 
       const dateHeadingText = rowText.replace(/\s+Showing Sessions with Status:.*$/i, '');
       const parsedDateKey = parsePdfDateHeading(dateHeadingText);
-      const repairedDateKey = parsedDateKey ? '' : repairPdfDateHeading(dateHeadingText, sourceFileName);
+      const repairedDateKey = parsedDateKey ? '' : repairPdfDateHeading(dateHeadingText, sourceFileName, {
+        includeNextDay: includeFinalOperationalDayOvernight
+      });
       const dateKey = parsedDateKey || repairedDateKey;
       if (dateKey) {
         currentDate = dateKey;
