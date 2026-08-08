@@ -150,3 +150,8 @@ body.light.compact-window-mode .card-top p { font-size: 1.12rem; }
 body.light.compact-window-mode #nextTime { font-size: 2.85rem; }
 body.light.compact-window-mode #nextCountdown { font-size: 1.95rem; }
 body.light.compact-window-mode .next-session-list { margin: .4rem 0 0; }
+/* 小視窗淺色模式強制使用深色資訊文字，狀態 Badge 則保留各自的高對比識別色。 */
+body.light.compact-window-mode .next-session-title,
+body.light.compact-window-mode .next-session-unlabeled { color: #0f172a; }
+body.light.compact-window-mode .next-card,
+body.light.compact-window-mode .next-session-item { color: #0f172a; }

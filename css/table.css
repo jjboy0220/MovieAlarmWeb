@@ -38,3 +38,18 @@ th:nth-child(2), td:nth-child(2) { text-align: center; }
 .private-latest-time { width: 62px; min-width: 62px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; }
 .private-latest-time:invalid:not(:placeholder-shown) { border-color: #ef4444; }
 .private-latest-time:disabled { display: none; }
+
+/* 淺色模式的場次類型控制維持深色文字，避免亮色狀態底色降低可讀性。 */
+body.light .session-type-select { color: #0f172a; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%230f172a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+body.light .session-type-select.type-private,
+body.light .session-type-select.type-live,
+body.light .session-type-select.type-special { color: #111827; }
+body.light .session-type-select.type-private { background-color: #ffedd5; }
+body.light .session-type-select.type-live { background-color: #fce7f3; }
+body.light .session-type-select.type-special { background-color: #fef9c3; }
+body.light .session-type-select option,
+body.light .special-timing-select option { background: #ffffff; color: #0f172a; }
+body.light .special-timing-select { background-color: #fef9c3; color: #111827; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23111827' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+body.light .session-type-clear { border-color: #475569; color: #111827; }
+body.light .private-time-field { color: #111827; }
+body.light .private-started-control { background: #dcfce7; color: #052e16; }
