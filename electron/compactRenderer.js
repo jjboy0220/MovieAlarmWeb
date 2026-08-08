@@ -56,13 +56,27 @@ function createPrivateBookingNotice(session) {
   return notice;
 }
 
+// 依小視窗待確認場次類型建立標題，LIVE 明確標示為待開演資訊。
+function getOpeningConfirmationHeading(sessions, operationalDateKey) {
+  const markers = new Set(sessions.map(session => session.manualMarker));
+  const title = markers.size === 1 && markers.has('LIVE')
+    ? 'LIVE待開演資訊'
+    : markers.size === 1 && markers.has('PRIVATE')
+      ? '包廳待開播資訊'
+      : markers.size === 1 && markers.has('SPECIAL')
+        ? '特別場待開播資訊'
+        : '待確認開播／開演資訊';
+  return `${title}｜${operationalDateKey.replaceAll('-', '/')}`;
+}
+
 function renderPrivateBookingMonitor(sessions = [], operationalDateKey = '') {
   const monitor = $('#compactPrivateMonitor');
   monitor.replaceChildren();
   monitor.hidden = !sessions.length;
   if (!sessions.length) return;
   const heading = document.createElement('strong');
-  heading.textContent = `待確認開播場次｜${operationalDateKey.replaceAll('-', '/')}`;
+  heading.textContent = getOpeningConfirmationHeading(sessions, operationalDateKey);
+  monitor.classList.toggle('type-live', sessions.every(session => session.manualMarker === 'LIVE'));
   monitor.append(heading);
   sessions.forEach(session => {
     const item = document.createElement('div');
@@ -134,7 +148,7 @@ function renderPresentation(presentation = {}) {
       const badges = document.createElement('div');
       badges.className = 'badges';
       appendSessionTypeBadge(badges, session);
-      if (session.language) badges.append(createBadge(session.language));
+      if (session.language) badges.append(createBadge(session.language, 'language'));
       combineSpecialFormats(session.formats).forEach(format => badges.append(createBadge(format, 'format')));
       card.append(badges);
       const privateNotice = createPrivateBookingNotice(session);
@@ -171,7 +185,7 @@ function renderAlarm(payload = {}) {
     const badges = document.createElement('div');
     badges.className = 'badges';
     appendSessionTypeBadge(badges, session);
-    if (session.language) badges.append(createBadge(session.language));
+    if (session.language) badges.append(createBadge(session.language, 'language'));
     const formats = session.formats?.length ? session.formats : [session.format].filter(Boolean);
     combineSpecialFormats(formats).forEach(format => badges.append(createBadge(format, 'format')));
     card.append(badges);

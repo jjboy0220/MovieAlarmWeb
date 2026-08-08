@@ -1,10 +1,23 @@
 import { renderFormatBadges, renderHallBadge, renderLanguageBadge } from './badgeRenderer.js';
-import { CINEMA_CODE, CINEMA_CONFIG, FORMATS, HALLS, MONITOR_TITLE, VERSION, formatHallDisplay } from './config.js';
+import { ALARM_SOUND_MODES, CINEMA_CODE, CINEMA_CONFIG, FORMATS, HALLS, MONITOR_TITLE, VERSION, formatHallDisplay } from './config.js';
 import { escapeHtml, formatCompactChineseDate } from './utils.js';
 
 let renderedGroupKey = '';
 
 const SESSION_TYPE_LABELS = Object.freeze({ PRIVATE: '包廳', LIVE: 'LIVE', SPECIAL: '特別場' });
+
+// 依目前待確認場次類型建立明確標題，LIVE 使用「待開演」避免與一般開播混淆。
+function getOpeningConfirmationHeading(sessions, operationalDateKey) {
+  const markers = new Set(sessions.map(session => session.manualMarker));
+  const title = markers.size === 1 && markers.has('LIVE')
+    ? 'LIVE待開演資訊'
+    : markers.size === 1 && markers.has('PRIVATE')
+      ? '包廳待開播資訊'
+      : markers.size === 1 && markers.has('SPECIAL')
+        ? '特別場待開播資訊'
+        : '待確認開播／開演資訊';
+  return `${title}｜${operationalDateKey.replaceAll('-', '/')}`;
+}
 
 function renderSessionTypeBadge(session) {
   const label = SESSION_TYPE_LABELS[session.manualMarker];
@@ -373,7 +386,8 @@ export function updatePrivateBookingMonitor(sessions = [], operationalDateKey = 
   if (!sessions.length) return;
 
   const heading = document.createElement('strong');
-  heading.textContent = `待確認開播場次｜${operationalDateKey.replaceAll('-', '/')}`;
+  heading.textContent = getOpeningConfirmationHeading(sessions, operationalDateKey);
+  monitor.classList.toggle('type-live', sessions.every(session => session.manualMarker === 'LIVE'));
   monitor.append(heading);
   sessions.forEach(session => {
     const item = document.createElement('div');
@@ -509,12 +523,15 @@ export function configureCinemaUi() {
   if (sessionTypeHeading) sessionTypeHeading.textContent = '場次類型';
   const formatFilter = $('#formatFilter');
   formatFilter.replaceChildren(new Option('所有規格', 'ALL'), ...FORMATS.map(format => new Option(format, format)));
+  const soundModeSelect = $('#settingsSoundMode');
+  soundModeSelect.replaceChildren(...ALARM_SOUND_MODES.map(option => new Option(option.label, option.value)));
   const hallVoiceSelect = $('#hallVoiceTestSelect');
   hallVoiceSelect.replaceChildren(
-    new Option('預設警報聲', 'DEFAULT_ALARM'),
+    ...(CINEMA_CONFIG.allowDefaultAlarmSound === false ? [] : [new Option('預設警報聲', 'DEFAULT_ALARM')]),
     ...HALLS.map(hall => new Option(`${formatHallDisplay(hall)} 開播`, hall)),
     ...HALLS.map(hall => new Option(`${formatHallDisplay(hall)} 包廳提醒`, `PRIVATE:${hall}`)),
-    ...(CINEMA_CONFIG.liveAudioSource ? [new Option('LIVE 直播場次提醒', 'LIVE_REMINDER')] : [])
+    ...(CINEMA_CONFIG.flexibleSpecialAudioSource ? [new Option('特別場非表定開播提醒', 'FLEXIBLE_SPECIAL_REMINDER')] : []),
+    ...(CINEMA_CONFIG.liveAudioSource ? [new Option('直播場次提醒', 'LIVE_REMINDER')] : [])
   );
   document.documentElement.dataset.cinema = CINEMA_CODE;
   const brandVersion = document.querySelector('.brand small');

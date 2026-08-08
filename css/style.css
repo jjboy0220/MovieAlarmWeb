@@ -178,7 +178,11 @@ input, textarea, [contenteditable="true"] { user-select: text; -webkit-user-sele
 .private-booking-monitor-item button:disabled { cursor: wait; opacity: .65; }
 .private-booking-monitor-item.type-live { border-color: #ec4899; background: rgba(190, 24, 93, .2); color: #fbcfe8; }
 .private-booking-monitor-item.type-special { border-color: #eab308; background: rgba(202, 138, 4, .2); color: #fef08a; }
+.private-booking-monitor.type-live > strong { color: #f9a8d4; }
 body.light .private-booking-monitor-item { background: #ffedd5; color: #9a3412; }
+body.light .private-booking-monitor-item.type-live { border-color: #db2777; background: #fce7f3; color: #831843; }
+body.light .private-booking-monitor-item.type-special { border-color: #ca8a04; background: #fef9c3; color: #713f12; }
+body.light .private-booking-monitor.type-live > strong { color: #be185d; }
 .file-button, .theme-button { padding: 8px 12px; border: 1px solid var(--header-line); border-radius: 6px; background: var(--button-surface); color: var(--header-ink); cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
 .theme-button:hover { border-color: var(--primary-hover); color: var(--primary-hover); }
 .theme-button:focus-visible, .file-button:focus-visible, .controls select:focus-visible, .search:focus-within { outline: 3px solid var(--focus-ring); outline-offset: 2px; }

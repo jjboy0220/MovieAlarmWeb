@@ -6,6 +6,8 @@ const PRIVATE_BOOKING_AUDIO_SOURCES = Object.freeze(CINEMA_CONFIG.privateBooking
 const HALL_ANNOUNCEMENTS = Object.freeze(CINEMA_CONFIG.hallAnnouncements);
 const LIVE_AUDIO_SOURCE = CINEMA_CONFIG.liveAudioSource || '';
 const LIVE_ANNOUNCEMENT = CINEMA_CONFIG.liveAnnouncement || '直播場次提醒。';
+const FLEXIBLE_SPECIAL_AUDIO_SOURCE = CINEMA_CONFIG.flexibleSpecialAudioSource || '';
+const FLEXIBLE_SPECIAL_ANNOUNCEMENT = CINEMA_CONFIG.flexibleSpecialAnnouncement || '特別場非表定開播提醒。';
 let sharedAlarmChannel = null;
 
 // 將瀏覽器拒絕播放的情況轉為可直接顯示的繁體中文提示。
@@ -148,17 +150,22 @@ export function createAlarmChannel() {
     const isDefaultAlarmPreview = hall === 'DEFAULT_ALARM';
     const isPrivateBookingPreview = String(hall || '').startsWith('PRIVATE:');
     const isLivePreview = hall === 'LIVE_REMINDER';
+    const isFlexibleSpecialPreview = hall === 'FLEXIBLE_SPECIAL_REMINDER';
     const previewHall = isPrivateBookingPreview ? String(hall).slice('PRIVATE:'.length) : hall;
     const message = isDefaultAlarmPreview
       ? '預設警報聲'
       : isLivePreview
         ? LIVE_ANNOUNCEMENT
+        : isFlexibleSpecialPreview
+          ? FLEXIBLE_SPECIAL_ANNOUNCEMENT
         : isPrivateBookingPreview ? getPrivateBookingAnnouncement(previewHall) : getHallAnnouncement(previewHall);
     if (runtime.active) return Promise.resolve({ success: false, message: '正式警報播放中，請先停止警報再測試語音' });
     const recordedSource = isDefaultAlarmPreview
       ? ALARM_AUDIO_SOURCE
       : isLivePreview
         ? LIVE_AUDIO_SOURCE
+        : isFlexibleSpecialPreview
+          ? FLEXIBLE_SPECIAL_AUDIO_SOURCE
         : isPrivateBookingPreview ? getPrivateBookingAudioSource(previewHall) : getHallAudioSource(previewHall);
     if (recordedSource && audio) {
       speechGeneration += 1;
@@ -274,10 +281,14 @@ export function createAlarmChannel() {
         return {
           message: isPrivateBooking
             ? getPrivateBookingAnnouncement(session.hall)
-            : isLive ? LIVE_ANNOUNCEMENT : getHallAnnouncement(session.hall),
+            : isLive
+              ? LIVE_ANNOUNCEMENT
+              : isSpecial ? FLEXIBLE_SPECIAL_ANNOUNCEMENT : getHallAnnouncement(session.hall),
           source: isPrivateBooking
             ? getPrivateBookingAudioSource(session.hall)
-            : isLive ? LIVE_AUDIO_SOURCE : getHallAudioSource(session.hall),
+            : isLive
+              ? LIVE_AUDIO_SOURCE
+              : isSpecial ? FLEXIBLE_SPECIAL_AUDIO_SOURCE : getHallAudioSource(session.hall),
           priority: isLive ? 2 : (isPrivateBooking || isSpecial) ? 1 : 0,
           sourceIndex
         };

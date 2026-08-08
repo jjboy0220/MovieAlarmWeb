@@ -49,8 +49,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
 
 // V1.1 僅提供本機警報聲與靜音視覺提醒，不新增外部音效資源。
 export const ALARM_SOUND_MODES = Object.freeze([
-  { value: 'DEFAULT', label: '預設警報聲' },
+  ...(CINEMA_CONFIG.allowDefaultAlarmSound === false ? [] : [{ value: 'DEFAULT', label: '預設警報聲' }]),
   { value: 'HALL_VOICE', label: '廳別語音播報' },
   { value: 'SILENT', label: '靜音（保留視覺提醒）' }
 ]);
+export const RESET_HALL_VOICE_ON_LAUNCH = CINEMA_CONFIG.resetHallVoiceOnLaunch === true;
 export const ALARM_LEAD_MINUTES = Object.freeze([0, 1, 3, 5, 10, 15]);

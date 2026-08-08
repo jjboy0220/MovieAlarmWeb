@@ -54,3 +54,6 @@ body.light .status-badge.invalid { border-color: #fca5a5; background: #fee2e2; c
 .session-type-badge.type-private { background: rgba(249,115,22,.18); color: #fb923c; }
 .session-type-badge.type-live { background: rgba(190,24,93,.2); color: #f472b6; }
 .session-type-badge.type-special { background: rgba(202,138,4,.2); color: #fde047; }
+body.light .session-type-badge.type-private { background: #ffedd5; color: #9a3412; }
+body.light .session-type-badge.type-live { background: #fce7f3; color: #9d174d; }
+body.light .session-type-badge.type-special { background: #fef9c3; color: #713f12; }

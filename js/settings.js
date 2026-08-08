@@ -1,4 +1,4 @@
-import { ALARM_LEAD_MINUTES, ALARM_SOUND_MODES, DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY } from './config.js';
+import { ALARM_LEAD_MINUTES, ALARM_SOUND_MODES, DEFAULT_SETTINGS, RESET_HALL_VOICE_ON_LAUNCH, SETTINGS_STORAGE_KEY } from './config.js';
 
 // 將外部或舊版設定值限制在 V1.0 支援的主題、音量與選項範圍內。
 export function normalizeSettings(candidate = {}) {
@@ -42,9 +42,10 @@ export function hasStoredStartupPreference() {
 export function loadSettings() {
   try {
     const saved = globalThis.localStorage?.getItem(SETTINGS_STORAGE_KEY);
-    return saved ? normalizeSettings(JSON.parse(saved)) : { ...DEFAULT_SETTINGS };
+    const settings = saved ? normalizeSettings(JSON.parse(saved)) : { ...DEFAULT_SETTINGS };
+    return RESET_HALL_VOICE_ON_LAUNCH ? { ...settings, alarmSoundMode: 'HALL_VOICE' } : settings;
   } catch {
-    return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...(RESET_HALL_VOICE_ON_LAUNCH ? { alarmSoundMode: 'HALL_VOICE' } : {}) };
   }
 }
 

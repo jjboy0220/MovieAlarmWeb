@@ -4,6 +4,8 @@ export const TD_CINEMA_CONFIG = Object.freeze({
   version: '1.0.0',
   appDisplayName: '(TD) Movie Schedule Alarm',
   monitorTitle: '台南南紡威秀影城場次監控',
+  allowDefaultAlarmSound: false,
+  resetHallVoiceOnLaunch: true,
   includeFinalOperationalDayOvernight: true,
   halls: ['C1', 'C2', 'C3', 'C5', 'C6', 'C7', 'C8', 'C9', 'GC1', 'GC2', 'C21', 'C22', 'C23', 'C24', 'C25'],
   hallDisplayLabels: {
@@ -34,6 +36,8 @@ export const TD_CINEMA_CONFIG = Object.freeze({
   },
   liveAudioSource: 'cinemas/TD/assets/live/live-reminder.mp3',
   liveAnnouncement: '直播場次提醒。',
+  flexibleSpecialAudioSource: 'cinemas/TD/assets/special/flexible-start-reminder.mp3',
+  flexibleSpecialAnnouncement: '特別場非表定開播提醒。',
   hallAnnouncements: {
     C1: '一廳，開播。', C2: '二廳，開播。', C3: '三廳，開播。', C5: '五廳，開播。', C6: '六廳，開播。',
     C7: '七廳，開播。', C8: '八廳，開播。', C9: '九廳，開播。', GC1: 'GC 一廳，開播。', GC2: 'GC 二廳，開播。',
