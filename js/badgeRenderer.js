@@ -1,7 +1,7 @@
 import { escapeHtml, formatSessionFormats, getSessionFormats } from './utils.js';
 import { formatHallDisplay } from './config.js';
 
-const FORMAT_BADGE_CLASSES = { DIG: 'dig', 'DIG FAN': 'dig-fan', TITAN: 'titan', IMAX: 'imax', ATMOS: 'atmos', CTRL: 'ctrl', '4DX': 'fourdx', '3D': 'three-d', LIVE: 'live', SPECIAL: 'special', PRE: 'pre' };
+const FORMAT_BADGE_CLASSES = { DIG: 'dig', 'DIG FAN': 'dig-fan', FAN: 'fan', TITAN: 'titan', IMAX: 'imax', ATMOS: 'atmos', CTRL: 'ctrl', '4DX': 'fourdx', '3D': 'three-d', LIVE: 'live', SPECIAL: 'special', PRE: 'pre' };
 const LANGUAGE_BADGE_CLASSES = { CHI: 'chi', ENG: 'eng', JAN: 'jan' };
 
 // 將標準化格式名稱對應為白名單 CSS 類別，避免外部文字成為類別名稱。

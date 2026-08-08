@@ -1,6 +1,6 @@
 const basePackage = require('../../package.json');
 
-// 建立可與 TC 並存的 MM V2.1 安裝設定，使用獨立產品識別與輸出資料夾。
+// 建立可與 TC 並存的 MM V2.2 安裝設定，使用獨立產品識別與輸出資料夾。
 module.exports = {
   ...basePackage.build,
   appId: 'com.moviealarm.schedule.mm',
@@ -11,9 +11,9 @@ module.exports = {
     name: 'movie-schedule-alarm-mm',
     productName: '(MM) Movie Schedule Alarm',
     cinemaCode: 'MM',
-    version: '2.1.0',
+    version: '2.2.0',
     desktopAppId: 'com.moviealarm.schedule.mm'
   },
   files: [...basePackage.build.files, '!cinemas/TC/**/*', '!cinemas/TD/**/*', '!assets/hall-voice/gc1.mp3', '!assets/hall-voice/gc2.mp3'],
-  nsis: { ...basePackage.build.nsis, artifactName: '(MM)Movie-Schedule-Alarm-V2.1-Setup.${ext}' }
+  nsis: { ...basePackage.build.nsis, artifactName: '(MM)Movie-Schedule-Alarm-V2.2-Setup.${ext}' }
 };
