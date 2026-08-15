@@ -1,7 +1,7 @@
 // TC 影城專屬版本、廳別與格式設定，保留既有 GC 廳規則。
 export const TC_CINEMA_CONFIG = Object.freeze({
   code: 'TC',
-  version: '2.3.0',
+  version: '2.4.0',
   appDisplayName: '(TC) Movie Schedule Alarm',
   monitorTitle: '老虎城威秀影城場次監控',
   allowDefaultAlarmSound: false,
