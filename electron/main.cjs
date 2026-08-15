@@ -156,7 +156,7 @@ function resizeCompactWindow(contentHeight) {
   const minimumHeight = 160;
   const maximumHeight = Math.max(minimumHeight, Math.floor(workArea.height * 0.82));
   const height = Math.min(maximumHeight, Math.max(minimumHeight, Math.round(requestedHeight)));
-  compactWindow.setSize(COMPACT_WINDOW_BOUNDS.width, height, false);
+  compactWindow.setContentSize(COMPACT_WINDOW_BOUNDS.width, height, false);
   return { enabled: true, height };
 }
 

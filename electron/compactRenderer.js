@@ -2,6 +2,7 @@ const compactApi = globalThis.compactWindow;
 const $ = selector => document.querySelector(selector);
 let latestPresentation = {};
 let alarmIsActive = false;
+let compactResizeObserver = null;
 
 // 依卡片實際外框高度調整 BrowserWindow，避免透明區域殘留成黑色空白。
 function requestCompactResize() {
@@ -204,6 +205,11 @@ function restoreAfterAlarm() {
 
 // 綁定返回完整視窗及 Main Process 顯示資料事件。
 function init() {
+  const compactCard = $('#compactCard');
+  if (compactCard && typeof ResizeObserver === 'function') {
+    compactResizeObserver = new ResizeObserver(() => requestCompactResize());
+    compactResizeObserver.observe(compactCard);
+  }
   $('#showFullButton').addEventListener('click', () => compactApi.showFull());
   $('#stopAlarmButton').addEventListener('click', () => compactApi.stopAlarm());
   document.addEventListener('contextmenu', event => {
