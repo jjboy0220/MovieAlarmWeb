@@ -203,8 +203,9 @@ function createAlarmCoordinator({ getMainWindow, screen, sendTriggered }) {
   function schedule(candidate) {
     try {
       const payload = validateSchedulePayload(candidate);
+      const receivedAt = Date.now();
       debugState.ipcScheduleError = '';
-      debugState.scheduleReceivedAt = Date.now();
+      debugState.scheduleReceivedAt = receivedAt;
       debugState.alarmEnabled = payload.alarmEnabled;
       const window = getMainWindow();
       debugState.rendererWebContentsId = window && !window.isDestroyed() && !window.webContents.isDestroyed()
@@ -216,6 +217,15 @@ function createAlarmCoordinator({ getMainWindow, screen, sendTriggered }) {
         currentGeneration = payload.scheduleGeneration;
       }
       if (handledGroupKeys.has(payload.groupKey)) return getDebugState();
+
+      // Renderer 會在場次到點後立即把 Next Movie 推進下一組。若這次 IPC 比舊排程的
+      // setTimeout callback 更早進入 Main Process，直接覆寫 scheduledAlarm 會讓到點群組
+      // 永久 MISS。更換成不同群組前，先同步交付任何已到點的舊排程，確保交接具原子性。
+      if (scheduledAlarm && scheduledAlarm.groupKey !== payload.groupKey) {
+        const scheduledTriggerTimestamp = scheduledAlarm.startTimestamp
+          - scheduledAlarm.leadMinutes * 60_000;
+        if (receivedAt >= scheduledTriggerTimestamp) triggerScheduledAlarm(false);
+      }
 
       const existingTarget = scheduledAlarm
         ? scheduledAlarm.startTimestamp - scheduledAlarm.leadMinutes * 60_000

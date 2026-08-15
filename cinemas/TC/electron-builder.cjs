@@ -9,9 +9,9 @@ module.exports = {
   extraMetadata: {
     productName: '(TC) Movie Schedule Alarm',
     cinemaCode: 'TC',
-    version: '2.3.0',
+    version: '2.4.0',
     desktopAppId: 'com.moviealarm.schedule'
   },
   files: [...basePackage.build.files, '!cinemas/MM/**/*', '!cinemas/TD/**/*'],
-  nsis: { ...basePackage.build.nsis, artifactName: '(TC)Movie-Schedule-Alarm-V2.3-Setup.${ext}' }
+  nsis: { ...basePackage.build.nsis, artifactName: '(TC)Movie-Schedule-Alarm-V2.4-Setup.${ext}' }
 };
