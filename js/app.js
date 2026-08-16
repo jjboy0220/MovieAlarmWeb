@@ -766,10 +766,11 @@ function checkAlarmSchedule(now, previousTickAt, resumedFromBackground) {
 }
 
 // 停止音效、關閉 Modal 並保留已觸發群組紀錄，避免停止後重新觸發同一場次。
-function stopActiveAlarm() {
-  const stoppedGroupKey = state.activeAlarmGroup?.groupKey || '';
+function stopActiveAlarm(fallbackGroupKey = '') {
+  const stoppedGroupKey = state.activeAlarmGroup?.groupKey || String(fallbackGroupKey || '');
+  const stoppedGroup = state.activeAlarmGroup || findSessionGroupByKey(stoppedGroupKey);
   const stoppedPrivateSessionIds = new Set(
-    (state.activeAlarmGroup?.sessions || [])
+    (stoppedGroup?.sessions || [])
       .filter(session => requiresOpeningConfirmation(normalizeSessionMarker(session.manualMarker), session.specialTimingMode))
       .map(session => session.id)
   );
@@ -1163,7 +1164,7 @@ function init() {
   bindVisibilityRefresh();
   initializeCompactWindowAutoSize();
   unsubscribeDesktopAlarm = desktopAlarm?.onTriggered(handleDesktopAlarmTriggered) || null;
-  unsubscribeDesktopAlarmStopRequest = desktopAlarm?.onStopRequested(stopActiveAlarm) || null;
+  unsubscribeDesktopAlarmStopRequest = desktopAlarm?.onStopRequested(payload => stopActiveAlarm(payload?.groupKey)) || null;
   unsubscribeDesktopAlarmSessionSuspended = desktopAlarm?.onSessionSuspended?.(suspendActiveAlarmForSession) || null;
   unsubscribeDesktopAlarmSessionResumed = desktopAlarm?.onSessionResumed?.(resumeActiveAlarmForSession) || null;
   unsubscribeDesktopScheduleReminder = desktopScheduleReminder?.onShowRequested(payload => {

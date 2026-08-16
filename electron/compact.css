@@ -76,7 +76,53 @@ body { padding: 5px; overflow: hidden; }
 .compact-auto-dismiss-note { margin: 0 14px 10px; color: #ffd3b6; font-size: .76rem; font-weight: 800; text-align: center; }
 .compact-auto-dismiss-note[hidden] { display: none; }
 .compact-stop[hidden] { display: none; }
-.compact-card.alarm-mode { border-color: #ff6b18; box-shadow: inset 0 0 0 2px rgba(255,107,24,.22); }
+.compact-card.alarm-mode {
+  display: flex;
+  max-height: calc(100vh - 10px);
+  flex-direction: column;
+  overflow: hidden;
+  border-color: #ff6b18;
+  box-shadow: inset 0 0 0 2px rgba(255,107,24,.22);
+}
+/* 高度量測期間必須使用完整自然內容，不受尚未放大的舊視窗 100vh 限制。 */
+.compact-card.compact-measuring {
+  max-height: none !important;
+  overflow: visible !important;
+}
+.compact-card.compact-measuring .compact-sessions {
+  max-height: none !important;
+  overflow: visible !important;
+}
+.compact-card.alarm-mode .compact-header { flex: 0 0 auto; padding-block: 10px 8px; }
+.compact-card.alarm-mode .compact-sessions {
+  min-height: auto;
+  max-height: none;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+.compact-card.alarm-mode .session { padding-block: 8px; }
+.compact-card.alarm-mode .title { margin-block: 5px; }
+.compact-card.alarm-mode .session-private-notice { margin-top: 6px; padding-block: 6px; font-size: .78rem; }
+.compact-card.alarm-mode .compact-clock { flex: 0 0 auto; padding-block: 8px 9px; }
+.compact-card.alarm-mode .compact-clock strong,
+.compact-card.alarm-mode #compactCountdown { font-size: 1.7rem; }
+.compact-card.alarm-mode .compact-version { display: none; }
+.compact-card.alarm-mode .compact-auto-dismiss-note { flex: 0 0 auto; }
+.compact-card.alarm-mode .compact-stop {
+  position: static;
+  flex: 0 0 auto;
+  width: calc(100% - 28px);
+  margin: 0 14px 14px;
+  box-shadow: none;
+  -webkit-app-region: no-drag;
+}
+.compact-card.alarm-mode .compact-sessions.many-sessions .session {
+  padding-block: 7px;
+}
+.compact-card.alarm-mode .compact-sessions.many-sessions .session-private-notice {
+  padding-block: 5px;
+  line-height: 1.25;
+}
 .compact-card.alarm-mode .compact-header > span { color: #ffb36b; }
 .empty { margin: 0; padding: 25px; border: 1px dashed #315d8d; border-radius: 15px; color: #bfd3ea; text-align: center; }
 

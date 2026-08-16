@@ -154,10 +154,26 @@ function resizeCompactWindow(contentHeight) {
   const currentBounds = compactWindow.getBounds();
   const workArea = screen.getDisplayMatching(currentBounds).workArea;
   const minimumHeight = 160;
-  const maximumHeight = Math.max(minimumHeight, Math.floor(workArea.height * 0.82));
+  // 人工確認場次會比一般警報多出提示列；不可用固定 82% 高度截斷內容。
+  // 保留上下各 8px 安全邊距，其餘工作區交由 Renderer 的實際內容高度使用。
+  const maximumHeight = Math.max(minimumHeight, workArea.height - 16);
   const height = Math.min(maximumHeight, Math.max(minimumHeight, Math.round(requestedHeight)));
   compactWindow.setContentSize(COMPACT_WINDOW_BOUNDS.width, height, false);
   return { enabled: true, height };
+}
+
+// 警報內容會比一般 Next Movie 卡片高；先由 Main Process 放大實體視窗，
+// 避免部分 Windows 安裝環境尚未完成 Renderer 高度量測時截掉停止按鈕。
+function prepareCompactWindowForAlarm(sessionCount = 1) {
+  if (!compactWindowMode || !compactWindow || compactWindow.isDestroyed()) return;
+  const currentBounds = compactWindow.getBounds();
+  const workArea = screen.getDisplayMatching(currentBounds).workArea;
+  const normalizedCount = Math.max(1, Math.min(8, Number(sessionCount) || 1));
+  const requestedHeight = normalizedCount === 1
+    ? 440
+    : 500 + normalizedCount * 72;
+  const height = Math.min(Math.max(160, workArea.height - 16), requestedHeight);
+  compactWindow.setContentSize(COMPACT_WINDOW_BOUNDS.width, height, false);
 }
 
 // 將既有主視窗還原、顯示並移至最上方，供重複啟動時沿用單一執行個體。
@@ -344,10 +360,15 @@ function bindDesktopWindowIpc() {
   });
   ipcMain.handle('compact-window:stop-alarm', event => {
     if (!compactWindow || event.sender !== compactWindow.webContents) throw new Error('拒絕未授權的小視窗警報操作來源');
+    const groupKey = activeAlarmPayload?.groupKey || '';
     if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-      mainWindow.webContents.send('desktop-alarm:stop-requested');
+      mainWindow.webContents.send('desktop-alarm:stop-requested', { groupKey });
     }
-    return { requested: true };
+    const debug = alarmCoordinator.acknowledge(groupKey);
+    activeAlarmPayload = null;
+    compactWindow.webContents.send('compact-window:alarm-stopped');
+    refreshWindowTopmostState();
+    return { requested: true, debug: includeWebContentsAudioDebug(debug) };
   });
   ipcMain.handle('compact-window:private-booking-started', (event, sessionId) => {
     if (!compactWindow || event.sender !== compactWindow.webContents) throw new Error('拒絕未授權的包廳狀態來源');
@@ -511,6 +532,7 @@ if (!hasSingleInstanceLock) {
         }
         try {
           if (compactWindowMode && compactWindow && !compactWindow.isDestroyed()) {
+            prepareCompactWindowForAlarm(payload.sessions?.length);
             compactWindow.webContents.send('compact-window:alarm', payload);
           }
           mainWindow.webContents.send('desktop-alarm:triggered', payload);
@@ -545,6 +567,7 @@ if (!hasSingleInstanceLock) {
         mainWindow.webContents.send('desktop-alarm:session-resumed');
       }
       if (activeAlarmPayload && compactWindow && !compactWindow.isDestroyed()) {
+        prepareCompactWindowForAlarm(activeAlarmPayload.sessions?.length);
         compactWindow.webContents.send('compact-window:alarm', activeAlarmPayload);
       }
       alarmCoordinator.handleSessionUnlock();

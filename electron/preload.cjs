@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('desktopAlarm', Object.freeze({
   },
   onStopRequested: callback => {
     if (typeof callback !== 'function') return () => {};
-    const listener = () => callback();
+    const listener = (_event, payload) => callback(payload);
     ipcRenderer.on('desktop-alarm:stop-requested', listener);
     return () => ipcRenderer.removeListener('desktop-alarm:stop-requested', listener);
   },

@@ -3,13 +3,46 @@ const $ = selector => document.querySelector(selector);
 let latestPresentation = {};
 let alarmIsActive = false;
 let compactResizeObserver = null;
+let compactResizePending = false;
+let compactResizeQueued = false;
 
 // 依卡片實際外框高度調整 BrowserWindow，避免透明區域殘留成黑色空白。
-function requestCompactResize() {
+async function requestCompactResize() {
   const card = $('#compactCard');
   if (!card) return;
-  const contentHeight = Math.ceil(card.getBoundingClientRect().height + 10);
-  void compactApi.resize(contentHeight);
+  if (compactResizePending) {
+    compactResizeQueued = true;
+    return;
+  }
+
+  compactResizePending = true;
+  try {
+    compactResizeObserver?.unobserve(card);
+    // 量測時暫時解除卡片與場次區的視窗高度限制，取得包含包廳、LIVE、
+    // 特別場提示與停止按鈕的完整自然高度；否則 CSS 的 100vh 限制會把
+    // 已裁切的高度誤當成完整高度，Main Process 便無法把實體視窗加高。
+    card.style.maxHeight = '';
+    card.classList.add('compact-measuring');
+    const cardBounds = card.getBoundingClientRect();
+    const borderHeight = Math.max(0, cardBounds.height - card.clientHeight);
+    const fullCardHeight = Math.max(cardBounds.height, card.scrollHeight + borderHeight);
+    card.classList.remove('compact-measuring');
+    const requestedHeight = Math.ceil(fullCardHeight + 10);
+    const result = await compactApi.resize(requestedHeight);
+    if (Number.isFinite(result?.height)) {
+      card.style.maxHeight = result.height < requestedHeight
+        ? `${Math.max(150, result.height - 10)}px`
+        : '';
+    }
+  } finally {
+    card.classList.remove('compact-measuring');
+    compactResizeObserver?.observe(card);
+    compactResizePending = false;
+    if (compactResizeQueued) {
+      compactResizeQueued = false;
+      requestAnimationFrame(requestCompactResize);
+    }
+  }
 }
 
 // 將完整星期文字縮寫為單一繁體中文字，避免小視窗日期列過長。
